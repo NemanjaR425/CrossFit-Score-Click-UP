@@ -43,11 +43,19 @@ st.markdown("""
 
 # --- GOOGLE SHEETS FOR ATHLETE NAMES ---
 conn = st.connection("gsheets", type=GSheetsConnection)
+
 try:
-    df = conn.read(worksheet="Athletes", ttl=300)
+    # This pulls from the [connections.gsheets] section of your secrets
+    df = conn.read(
+        spreadsheet=st.secrets["connections"]["gsheets"]["spreadsheet"],
+        worksheet="Athletes", 
+        ttl=300
+    )
     athlete_list = [f"{row['Athlete_ID']} - {row['Name']}" for _, row in df.iterrows()]
-except:
-    athlete_list = ["1 - Loading Athletes..."]
+except Exception as e:
+    # This helps us see the error if it still fails
+    st.error(f"Sheet Error: {e}")
+    athlete_list = ["1 - Check Sheet Permissions"]
 
 st.title("⏱️ Live Score")
 selected_athlete = st.selectbox("Select Athlete:", athlete_list)
