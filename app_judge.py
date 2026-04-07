@@ -6,8 +6,14 @@ from streamlit_gsheets import GSheetsConnection
 # 1. INIT FIREBASE
 if not firebase_admin._apps:
     fb_dict = dict(st.secrets["firebase"])
+    
+    # THE FIX: Replace escaped newlines with actual newlines
+    fb_dict["private_key"] = fb_dict["private_key"].replace("\\n", "\n")
+    
     cred = credentials.Certificate(fb_dict)
-    firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': st.secrets["database"]["url"]
+    })
 
 # 2. INIT GOOGLE SHEETS (For Names)
 sheet_conn = st.connection("gsheets", type=GSheetsConnection)
