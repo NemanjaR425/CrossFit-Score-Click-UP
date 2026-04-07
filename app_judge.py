@@ -45,17 +45,26 @@ st.markdown("""
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 try:
-    # Use the spreadsheet key directly from secrets
-    sheet_id = st.secrets["connections"]["gsheets"]["spreadsheet"]
+    # Creating the connection
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    
+    # Force a read using the ID from secrets
     df = conn.read(
-        spreadsheet=sheet_id,
-        worksheet="Athletes", 
-        ttl=0  # Set to 0 to force a fresh pull while testing
+        spreadsheet=st.secrets["connections"]["gsheets"]["spreadsheet"],
+        worksheet="Athletes",
+        ttl=0  # No cache while we are debugging
     )
-    athlete_list = [f"{row['Athlete_ID']} - {row['Name']}" for _, row in df.iterrows()]
+    
+    # Check if we actually got data
+    if not df.empty:
+        athlete_list = [f"{row['Athlete_ID']} - {row['Name']}" for _, row in df.iterrows()]
+    else:
+        athlete_list = ["0 - Sheet is Empty"]
+        
 except Exception as e:
     st.error(f"Sheet Error: {e}")
-    athlete_list = ["0 - Error Loading Names"]
+    # Backup list so the app doesn't crash during the event
+    athlete_list = ["1 - Check Tab Name", "2 - Check Row Headers"]
 
 st.title("⏱️ Live Score")
 selected_athlete = st.selectbox("Select Athlete:", athlete_list)
