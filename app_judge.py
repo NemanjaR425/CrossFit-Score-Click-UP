@@ -45,17 +45,17 @@ st.markdown("""
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 try:
-    # This pulls from the [connections.gsheets] section of your secrets
+    # Use the spreadsheet key directly from secrets
+    sheet_id = st.secrets["connections"]["gsheets"]["spreadsheet"]
     df = conn.read(
-        spreadsheet=st.secrets["connections"]["gsheets"]["spreadsheet"],
+        spreadsheet=sheet_id,
         worksheet="Athletes", 
-        ttl=300
+        ttl=0  # Set to 0 to force a fresh pull while testing
     )
     athlete_list = [f"{row['Athlete_ID']} - {row['Name']}" for _, row in df.iterrows()]
 except Exception as e:
-    # This helps us see the error if it still fails
     st.error(f"Sheet Error: {e}")
-    athlete_list = ["1 - Check Sheet Permissions"]
+    athlete_list = ["0 - Error Loading Names"]
 
 st.title("⏱️ Live Score")
 selected_athlete = st.selectbox("Select Athlete:", athlete_list)
