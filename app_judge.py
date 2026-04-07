@@ -6,12 +6,15 @@ from streamlit_gsheets import GSheetsConnection
 # --- FIREBASE SETUP ---
 if not firebase_admin._apps:
     fb_secrets = st.secrets["firebase"]
-    # Build clean dictionary for Firebase
+    
+    # CRITICAL FIX: Ensure newlines are correctly interpreted
+    fixed_key = fb_secrets["private_key"].replace("\\n", "\n")
+    
     cred_dict = {
         "type": fb_secrets["type"],
         "project_id": fb_secrets["project_id"],
         "private_key_id": fb_secrets["private_key_id"],
-        "private_key": fb_secrets["private_key"].replace("\\n", "\n"),
+        "private_key": fixed_key,
         "client_email": fb_secrets["client_email"],
         "client_id": fb_secrets["client_id"],
         "auth_uri": fb_secrets["auth_uri"],
@@ -19,8 +22,11 @@ if not firebase_admin._apps:
         "auth_provider_x509_cert_url": fb_secrets["auth_provider_x509_cert_url"],
         "client_x509_cert_url": fb_secrets["client_x509_cert_url"],
     }
+    
     cred = credentials.Certificate(cred_dict)
-    firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': st.secrets["database"]["url"]
+    })
 
 st.set_page_config(page_title="Judge Clicker", layout="centered")
 
