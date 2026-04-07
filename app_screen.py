@@ -74,36 +74,52 @@ st.title("🏆 HERCEG NOVI LIVE LEADERBOARD")
 st.markdown("---")
 
 # 6. Fetch and Display Data
+# ... (rest of your imports and firebase setup)
+
+# 6. Fetch and Display Data
 try:
-    # Ensure we point to the correct node in Firebase
     ref = db.reference('live_wod')
     data = ref.get()
 
     if data:
         leaderboard_data = []
-        for key, val in data.items():
-            # Use .get() to prevent KeyError if a field is missing
-            name = val.get('name', f"Athlete {key}")
-            reps = val.get('reps', 0)
-            leaderboard_data.append({"name": name, "reps": reps})
         
-        df = pd.DataFrame(leaderboard_data).sort_values(by="reps", ascending=False).reset_index(drop=True)
+        # FIX: Check if data is a list or a dictionary
+        if isinstance(data, dict):
+            # If it's a dictionary (like {'1': {...}, '2': {...}})
+            for key, val in data.items():
+                if val:  # Ensure the entry isn't empty
+                    leaderboard_data.append({
+                        "name": val.get('name', f"Athlete {key}"),
+                        "reps": val.get('reps', 0)
+                    })
+        elif isinstance(data, list):
+            # If it's a list (like [None, {'name':...}, {'name':...}])
+            for index, val in enumerate(data):
+                if val:  # Skip 'None' entries common in Firebase lists
+                    leaderboard_data.append({
+                        "name": val.get('name', f"Athlete {index}"),
+                        "reps": val.get('reps', 0)
+                    })
+        
+        if leaderboard_data:
+            df = pd.DataFrame(leaderboard_data).sort_values(by="reps", ascending=False).reset_index(drop=True)
 
-        for index, row in df.iterrows():
-            st.markdown(f"""
-                <div class="entry-card">
-                    <div>
-                        <span class="rank-text">#{index + 1}</span>
-                        <span class="name-text">{row['name']}</span>
+            for index, row in df.iterrows():
+                st.markdown(f"""
+                    <div class="entry-card">
+                        <div>
+                            <span class="rank-text">#{index + 1}</span>
+                            <span class="name-text">{row['name']}</span>
+                        </div>
+                        <div class="score-text">{row['reps']}</div>
                     </div>
-                    <div class="score-text">{row['reps']}</div>
-                </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+        else:
+            st.warning("No athlete data found in Firebase.")
     else:
-        st.warning("🏆 Waiting for the first rep... Ready for Herceg Novi!")
+        st.info("🏆 Waiting for the first rep to be scored...")
 
 except Exception as e:
-    # This will now show you the actual error if it's not a secret issue
-    st.error(f"Connection status: {e}")
-
+    st.error(f"Leaderboard Error: {e}")
 st.caption("Real-time results powered by Streamlit & Firebase")
