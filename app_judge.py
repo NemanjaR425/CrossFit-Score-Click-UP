@@ -2,74 +2,52 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
 from streamlit_gsheets import GSheetsConnection
-from datetime import datetime
 
-# --- 1. INITIALIZE CONNECTIONS ---
-# Firebase for Live Speed
+# 1. INIT FIREBASE
 if not firebase_admin._apps:
-    cred = credentials.Certificate("your-firebase-key.json")
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': 'https://your-project-id.firebaseio.com/' # Replace with your URL
-    })
+    fb_dict = dict(st.secrets["firebase"])
+    cred = credentials.Certificate(fb_dict)
+    firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# Google Sheets for Athlete Names
+# 2. INIT GOOGLE SHEETS (For Names)
 sheet_conn = st.connection("gsheets", type=GSheetsConnection)
 
-# --- 2. LOAD ATHLETE NAMES ---
-try:
-    athlete_df = sheet_conn.read(worksheet="Athletes")
-    athlete_map = {str(row['Athlete_ID']): row['Name'] for _, row in athlete_df.iterrows()}
-    athlete_options = [f"{k} - {v}" for k, v in athlete_map.items()]
-except:
-    athlete_options = ["1 - Loading..."]
+st.set_page_config(page_title="Judge Clicker", layout="centered")
 
-# --- 3. JUDGE INTERFACE ---
-st.set_page_config(page_title="LIVE Judge Clicker", layout="centered")
-
-# Huge Button Styling
+# 3. STYLING (Huge Green Button)
 st.markdown("""
     <style>
     div.stButton > button:first-child {
-        height: 12em;
-        font-size: 40px !important;
-        background-color: #28a745;
-        color: white;
-        border-radius: 20px;
+        height: 12em; width: 100%; font-size: 45px !important;
+        background-color: #28a745; color: white; border-radius: 20px;
     }
-    .undo-btn button {
-        height: 3em !important;
-        background-color: #dc3545 !important;
-    }
+    .undo button { height: 4em !important; background-color: #6c757d !important; }
     </style>
     """, unsafe_allow_html=True)
 
-selected = st.selectbox("Assign Judge to Athlete:", athlete_options)
-a_id = selected.split(" - ")[0]
-a_name = selected.split(" - ")[1]
+# 4. DATA LOADING
+try:
+    df = sheet_conn.read(worksheet="Athletes", ttl=600)
+    athletes = [f"{r['Athlete_ID']} - {r['Name']}" for _, r in df.iterrows()]
+except:
+    athletes = ["1 - Loading..."]
 
-# Connect to this specific athlete's "Live Slot"
+# 5. UI
+selected = st.selectbox("Assign Athlete:", athletes)
+a_id, a_name = selected.split(" - ")
+
 ref = db.reference(f'live_wod/{a_id}')
+current = ref.get().get('reps', 0) if ref.get() else 0
 
-# Get current state
-data = ref.get()
-current_reps = data.get('reps', 0) if data else 0
+st.metric(f"Judging: {a_name}", f"{current} Reps")
 
-st.write(f"### Judging: **{a_name}**")
-st.metric("Total Reps", current_reps)
-
-# --- 4. THE CLICKER BUTTONS ---
-if st.button("➕ COUNT REP", use_container_width=True):
-    new_total = current_reps + 1
-    ref.update({
-        'reps': new_total,
-        'name': a_name,
-        'last_update': datetime.now().isoformat()
-    })
+if st.button("➕ SCORE"):
+    ref.update({'reps': current + 1, 'name': a_name})
     st.rerun()
 
-st.markdown('<div class="undo-btn">', unsafe_allow_html=True)
+st.markdown('<div class="undo">', unsafe_allow_html=True)
 if st.button("➖ UNDO ERROR"):
-    if current_reps > 0:
-        ref.update({'reps': current_reps - 1})
+    if current > 0:
+        ref.update({'reps': current - 1})
         st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
