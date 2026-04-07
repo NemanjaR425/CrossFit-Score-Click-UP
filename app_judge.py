@@ -5,19 +5,23 @@ from streamlit_gsheets import GSheetsConnection
 
 # 1. INIT FIREBASE
 if not firebase_admin._apps:
-    # Build the credential dictionary manually from secrets
-    # This avoids any 'Streamlit-specific' extra data causing the ValueError
+    # Use .get() to safely pull secrets
+    fb_secrets = st.secrets["firebase"]
+    
+    # THE FIX: Strip whitespace and handle double-escaped backslashes
+    clean_key = fb_secrets["private_key"].strip().replace("\\n", "\n")
+    
     cred_dict = {
-        "type": st.secrets["firebase"]["type"],
-        "project_id": st.secrets["firebase"]["project_id"],
-        "private_key_id": st.secrets["firebase"]["private_key_id"],
-        "private_key": st.secrets["firebase"]["private_key"].replace("\\n", "\n"),
-        "client_email": st.secrets["firebase"]["client_email"],
-        "client_id": st.secrets["firebase"]["client_id"],
-        "auth_uri": st.secrets["firebase"]["auth_uri"],
-        "token_uri": st.secrets["firebase"]["token_uri"],
-        "auth_provider_x509_cert_url": st.secrets["firebase"]["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": st.secrets["firebase"]["client_x509_cert_url"],
+        "type": fb_secrets["type"],
+        "project_id": fb_secrets["project_id"],
+        "private_key_id": fb_secrets["private_key_id"],
+        "private_key": clean_key,
+        "client_email": fb_secrets["client_email"],
+        "client_id": fb_secrets["client_id"],
+        "auth_uri": fb_secrets["auth_uri"],
+        "token_uri": fb_secrets["token_uri"],
+        "auth_provider_x509_cert_url": fb_secrets["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": fb_secrets["client_x509_cert_url"],
     }
     
     cred = credentials.Certificate(cred_dict)
