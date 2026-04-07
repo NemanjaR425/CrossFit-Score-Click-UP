@@ -5,12 +5,22 @@ from streamlit_gsheets import GSheetsConnection
 
 # 1. INIT FIREBASE
 if not firebase_admin._apps:
-    fb_dict = dict(st.secrets["firebase"])
+    # Build the credential dictionary manually from secrets
+    # This avoids any 'Streamlit-specific' extra data causing the ValueError
+    cred_dict = {
+        "type": st.secrets["firebase"]["type"],
+        "project_id": st.secrets["firebase"]["project_id"],
+        "private_key_id": st.secrets["firebase"]["private_key_id"],
+        "private_key": st.secrets["firebase"]["private_key"].replace("\\n", "\n"),
+        "client_email": st.secrets["firebase"]["client_email"],
+        "client_id": st.secrets["firebase"]["client_id"],
+        "auth_uri": st.secrets["firebase"]["auth_uri"],
+        "token_uri": st.secrets["firebase"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["firebase"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["firebase"]["client_x509_cert_url"],
+    }
     
-    # THE FIX: Replace escaped newlines with actual newlines
-    fb_dict["private_key"] = fb_dict["private_key"].replace("\\n", "\n")
-    
-    cred = credentials.Certificate(fb_dict)
+    cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(cred, {
         'databaseURL': st.secrets["database"]["url"]
     })
