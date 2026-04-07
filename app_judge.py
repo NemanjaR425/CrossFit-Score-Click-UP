@@ -30,6 +30,14 @@ if not firebase_admin._apps:
     except Exception as e:
         st.error(f"Firebase Error: {e}")
 
+# Only show the scoring button if a real athlete is selected
+if "Loading" not in selected_athlete and "Check" not in selected_athlete:
+    if st.button("➕ SCORE REP"):
+        ref.update({'reps': reps + 1, 'name': a_name})
+        st.rerun()
+else:
+    st.warning("Please wait for athletes to load before scoring.")
+
 # --- 3. UI STYLING ---
 st.markdown("""
     <style>
