@@ -75,37 +75,35 @@ st.markdown("---")
 
 # 6. Fetch and Display Data
 try:
+    # Ensure we point to the correct node in Firebase
     ref = db.reference('live_wod')
     data = ref.get()
 
     if data:
-        # Process and Sort
         leaderboard_data = []
         for key, val in data.items():
-            leaderboard_data.append({
-                "name": val.get('name', 'Unknown'),
-                "reps": val.get('reps', 0)
-            })
+            # Use .get() to prevent KeyError if a field is missing
+            name = val.get('name', f"Athlete {key}")
+            reps = val.get('reps', 0)
+            leaderboard_data.append({"name": name, "reps": reps})
         
-        # Sort by reps descending
         df = pd.DataFrame(leaderboard_data).sort_values(by="reps", ascending=False).reset_index(drop=True)
 
-        # Display Cards
         for index, row in df.iterrows():
-            rank = index + 1
             st.markdown(f"""
                 <div class="entry-card">
                     <div>
-                        <span class="rank-text">#{rank}</span>
+                        <span class="rank-text">#{index + 1}</span>
                         <span class="name-text">{row['name']}</span>
                     </div>
                     <div class="score-text">{row['reps']}</div>
                 </div>
             """, unsafe_allow_html=True)
     else:
-        st.info("Waiting for the first rep to be scored...")
+        st.warning("🏆 Waiting for the first rep... Ready for Herceg Novi!")
 
 except Exception as e:
-    st.error(f"Waiting for connection: {e}")
+    # This will now show you the actual error if it's not a secret issue
+    st.error(f"Connection status: {e}")
 
 st.caption("Real-time results powered by Streamlit & Firebase")
