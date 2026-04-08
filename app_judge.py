@@ -111,7 +111,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 5. APP LOGIC ---
-st.title("Judge Clicker")
+st.title("Sudija")
 
 selected_wod = st.selectbox("Select WOD:", wod_list)
 selected_athlete = st.selectbox("Select Athlete:", athlete_list)
