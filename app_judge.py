@@ -5,7 +5,7 @@ import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
 # --- 1. CONFIG ---
-st.set_page_config(page_title="Sudija", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Judge Clicker", layout="centered", initial_sidebar_state="collapsed")
 st_autorefresh(interval=3000, key="datarefresh") 
 
 # --- 2. FIREBASE CONNECTION ---
@@ -111,7 +111,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 5. APP LOGIC ---
-st.title("Sudija")
+st.title("Judge Clicker")
 
 selected_wod = st.selectbox("Select WOD:", wod_list)
 selected_athlete = st.selectbox("Select Athlete:", athlete_list)
