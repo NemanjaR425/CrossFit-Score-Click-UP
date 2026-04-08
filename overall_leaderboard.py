@@ -50,7 +50,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 4. DATA PROCESSING ---
-st.title("🥇 OVERALL COMPETITION STANDINGS")
+st.title("🥇 Rezultat")
 st.markdown("### Cumulative Score Across All 6 WODs")
 
 try:
