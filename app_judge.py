@@ -35,31 +35,26 @@ def get_athletes():
 athlete_list = get_athletes()
 wod_list = ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"]
 
-# --- 4. THE UI OVERHAUL (Targeting image_e940c8.png) ---
+# --- 4. THE UI OVERHAUL ---
 st.markdown("""
     <style>
-    /* Global Reset */
     .stApp { background-color: #0b0e14; }
     
-    /* Limit width to look like a phone on desktop */
     .block-container { 
         max-width: 450px !important; 
-        padding-top: 2rem !important; 
+        padding-top: 1.5rem !important; 
         margin: auto; 
     }
     
-    /* Header Style */
-    h1 { font-size: 36px !important; font-weight: 800 !important; margin-bottom: 15px !important; }
-    
-    /* Selectbox labels */
-    .stSelectbox label p { font-size: 20px !important; font-weight: 600 !important; color: white !important; }
+    h1 { font-size: 36px !important; font-weight: 800 !important; margin-bottom: 10px !important; }
+    .stSelectbox label p { font-size: 18px !important; font-weight: 600 !important; color: white !important; }
     
     /* Score Box Layout */
     .score-ui {
         display: flex;
         align-items: center;
-        gap: 20px;
-        margin: 30px 0;
+        gap: 15px;
+        margin: 20px 0;
     }
     .score-box {
         background: #1a1e26;
@@ -76,55 +71,53 @@ st.markdown("""
     }
     .reps-text { font-size: 80px; font-weight: 400; color: white; }
 
-    /* THE BIG ROUND BUTTONS */
+    /* --- THE BUTTONS --- */
     
-    /* 1. The Green '+' Button */
+    /* 1. MASSIVE Green '+' Button */
     div[data-testid="stButton"]:nth-of-type(1) button {
-        width: 70vw !important;
-        height: 70vw !important;
-        max-width: 280px !important;
-        max-height: 280px !important;
+        width: 85vw !important; /* Increased from 70vw */
+        height: 85vw !important;
+        max-width: 320px !important;
+        max-height: 320px !important;
         background-color: #2da94f !important;
         border-radius: 50% !important;
         border: none !important;
-        margin: 40px auto !important;
+        margin: 30px auto !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
-        box-shadow: 0 12px 40px rgba(45, 169, 79, 0.4) !important;
+        box-shadow: 0 15px 45px rgba(45, 169, 79, 0.4) !important;
     }
-    /* Icon inside Green button */
     div[data-testid="stButton"]:nth-of-type(1) button p {
-        font-size: 150px !important;
+        font-size: 180px !important; /* Larger icon */
         font-weight: 200 !important;
         color: white !important;
         line-height: 0 !important;
     }
 
-    /* 2. The Orange '-' Button */
+    /* 2. SMALL Orange '-' Button (Pinned Bottom-Right) */
     div[data-testid="stButton"]:nth-of-type(2) button {
         position: fixed !important;
-        bottom: 30px !important;
+        bottom: 40px !important;
         right: 30px !important;
-        width: 100px !important;
-        height: 100px !important;
-        background-color: #ff8a50 !important;
+        width: 90px !important; /* Smaller size */
+        height: 90px !important;
+        background-color: #ff8a50 !important; /* Orange */
         border-radius: 50% !important;
         border: none !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
         box-shadow: 0 8px 20px rgba(255, 138, 80, 0.4) !important;
+        z-index: 1000;
     }
-    /* Icon inside Orange button */
     div[data-testid="stButton"]:nth-of-type(2) button p {
-        font-size: 80px !important;
+        font-size: 70px !important;
         font-weight: 200 !important;
         color: white !important;
         line-height: 0 !important;
     }
 
-    /* Active States (Click Animation) */
     button:active { transform: scale(0.92) !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -144,7 +137,6 @@ if a_id != "0":
     current_data = ref.get()
     reps = current_data.get('reps', 0) if current_data else 0
 
-    # Score Box Section
     st.markdown(f"""
         <div class="score-ui">
             <div class="score-box">{reps}</div>
@@ -152,12 +144,12 @@ if a_id != "0":
         </div>
     """, unsafe_allow_html=True)
 
-    # Big Green Plus Button
+    # Giant Green Plus
     if st.button("+", key="p"):
         ref.update({'reps': reps + 1, 'name': a_name})
         st.rerun()
 
-    # Smaller Orange Minus Button
+    # Small Orange Minus (CSS handles positioning)
     if st.button("-", key="m"):
         if reps > 0:
             ref.update({'reps': reps - 1})
