@@ -27,6 +27,13 @@ st.markdown("""
     .stApp { background-color: #0b0e14; }
     .block-container { padding-top: 1rem !important; max-width: 500px !important; }
     
+    /* Logo Styling */
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: -10px;
+    }
+
     .leaderboard-row {
         display: flex;
         justify-content: space-between;
@@ -40,46 +47,33 @@ st.markdown("""
     
     .info-container { display: flex; flex-direction: column; gap: 4px; }
     .rank-name { display: flex; align-items: center; gap: 10px; }
-    
     .rank { color: #ff8a50; font-weight: 800; font-size: 16px; }
-    .athlete-name {
-        color: white;
-        font-weight: 600;
-        font-size: 15px;
-        text-transform: uppercase;
-    }
-    
-    /* The Breakdown Text */
-    .breakdown {
-        color: #666;
-        font-size: 11px;
-        font-family: monospace;
-        letter-spacing: 0.5px;
-    }
-
+    .athlete-name { color: white; font-weight: 600; font-size: 15px; text-transform: uppercase; }
+    .breakdown { color: #666; font-size: 11px; font-family: monospace; }
     .score-container { text-align: right; }
     .total-score { color: #ffffff; font-size: 22px; font-weight: 800; display: block; line-height: 1; }
     .score-label { color: #444; font-size: 9px; text-transform: uppercase; font-weight: bold; }
 
-    h1 { color: white !important; font-size: 26px !important; text-align: center; margin-bottom: 20px !important; }
+    h1 { color: white !important; font-size: 26px !important; text-align: center; margin-top: 10px !important; margin-bottom: 20px !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. DATA AGGREGATION ---
-st.title("🏆 GENERAL STANDINGS")
+# --- 4. TOP LOGO SECTION ---
+# Change "logo.png" to your actual filename
+try:
+    st.image("logo.png", use_container_width=True) 
+except:
+    # If file is missing, we show the title without crashing
+    st.title("🏆 GENERAL STANDINGS")
 
+# --- 5. DATA AGGREGATION ---
 ref = db.reference('competitions')
 all_data = ref.get()
 
 if all_data:
-    # totals structure: { a_id: {"name": str, "total": int, "wods": {wod_name: reps}} }
     totals = {}
-
     for wod_key, athletes in all_data.items():
-        # Clean WOD name for display (e.g., "WOD_1" -> "W1")
         display_wod = wod_key.replace("WOD_", "W") 
-        
-        # Normalize to list for iteration
         athlete_items = athletes.items() if isinstance(athletes, dict) else enumerate(athletes)
         
         for a_id, info in athlete_items:
@@ -94,12 +88,10 @@ if all_data:
                 totals[a_id_str]["total"] += reps
                 totals[a_id_str]["breakdown"][display_wod] = reps
 
-    # Sort by total reps descending
     sorted_overall = sorted(totals.values(), key=lambda x: x['total'], reverse=True)
 
-    # --- 5. RENDER ---
+    # --- 6. RENDER ---
     for i, entry in enumerate(sorted_overall):
-        # Create the breakdown string: "W1: 20 | W2: 15..."
         b_list = [f"{k}:{v}" for k, v in sorted(entry['breakdown'].items())]
         breakdown_str = " • ".join(b_list)
 
