@@ -93,7 +93,7 @@ st.markdown("""
         right: 25px !important;
         width: 65px !important; /* Shrunk for better navigation */
         height: 65px !important;
-        background-color: #ff8a50 !important; 
+        background-color: #ff8a50;
         border-radius: 50% !important;
         border: none !important;
         display: flex !important;
