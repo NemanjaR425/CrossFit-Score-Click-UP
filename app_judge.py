@@ -91,8 +91,8 @@ st.markdown("""
         position: fixed !important;
         bottom: 30px !important;
         right: 25px !important;
-        width: 65px !important; /* Shrunk for better navigation */
-        height: 65px !important;
+        width: 25px !important; /* Shrunk for better navigation */
+        height: 25px !important;
         background-color: #ff8a50 !important; 
         border-radius: 50% !important;
         border: none !important;
