@@ -2,10 +2,15 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
 import pandas as pd
+from streamlit_autorefresh import st_autorefresh
 
-st.set_page_config(page_title="HN CrossFit Judge", layout="centered")
+# --- 1. CONFIG & REFRESH ---
+st.set_page_config(page_title="HN CrossFit Leaderboard", layout="wide")
 
-# --- 1. FIREBASE SETUP ---
+# Refresh the screen every 3 seconds to show live score changes
+st_autorefresh(interval=3000, key="screen_refresh")
+
+# --- 2. FIREBASE SETUP ---
 if not firebase_admin._apps:
     try:
         fb_secrets = st.secrets["firebase"]
@@ -24,62 +29,86 @@ if not firebase_admin._apps:
         })
         firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
     except Exception as e:
-        st.error(f"Firebase Error: {e}")
+        st.error(f"Secret/Connection Error: {e}")
 
-# --- 2. ATHLETE & WOD CONFIG ---
-@st.cache_data(ttl=60)
-def get_athletes():
-    try:
-        sheet_id = "1z1ga9p39C0KJDSOK6ZzU0OUSgKM1UbSh9BiMPMSQ1PY"
-        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Athletes"
-        df = pd.read_csv(url).dropna(subset=['Athlete_ID', 'Name'])
-        return [f"{int(row['Athlete_ID'])} - {row['Name']}" for _, row in df.iterrows()]
-    except:
-        return ["1 - Loading..."]
+# --- 3. UI STYLING (TV STYLE) ---
+st.markdown("""
+    <style>
+    .main { background-color: #000000; }
+    .entry-card {
+        background-color: #1a1a1a;
+        border-radius: 12px;
+        padding: 20px 40px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-left: 15px solid #28a745;
+    }
+    .name-text { font-size: 40px !important; color: white; font-weight: bold; text-transform: uppercase; }
+    .score-text { font-size: 55px !important; color: #28a745; font-weight: 900; }
+    .rank-text { color: #666; font-size: 30px; margin-right: 25px; }
+    </style>
+    """, unsafe_allow_html=True)
 
-# List of your 6 WODs
-wod_list = ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"]
+# --- 4. HEADER & WOD SELECTOR ---
+st.title("🏆 HERCEG NOVI LIVE LEADERBOARD")
 
-# --- 3. UI ---
-st.title("⏱️ Judge Clicker")
+# This allows you to toggle the screen between the 6 different workouts
+target_wod = st.selectbox(
+    "Select Workout to Display:", 
+    ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"]
+)
+st.markdown("---")
 
-# Two columns for setup
-col1, col2 = st.columns(2)
-with col1:
-    selected_wod = st.selectbox("Select WOD:", wod_list)
-with col2:
-    athlete_options = get_athletes()
-    selected_athlete = st.selectbox("Select Athlete:", athlete_options)
-
-# Parsing
-a_id = selected_athlete.split(" - ")[0] if " - " in selected_athlete else "0"
-a_name = selected_athlete.split(" - ")[1] if " - " in selected_athlete else "Athlete"
-
-# --- 4. SCORING LOGIC ---
-if a_id != "0":
-    # Dynamic path based on selected WOD
-    db_path = f'competitions/{selected_wod.replace(" ", "_")}/{a_id}'
+# --- 5. DATA FETCHING ---
+try:
+    # Use the same path format as the Judge app
+    db_path = f'competitions/{target_wod.replace(" ", "_")}'
     ref = db.reference(db_path)
-    
-    current_data = ref.get()
-    reps = current_data.get('reps', 0) if current_data else 0
+    data = ref.get()
 
-    st.metric(label=f"{selected_wod}: {a_name}", value=f"{reps} REPS")
+    if data:
+        leaderboard_list = []
+        
+        # Robust handling for both Dictionary and List returns from Firebase
+        if isinstance(data, dict):
+            for key, val in data.items():
+                if val and isinstance(val, dict):
+                    leaderboard_list.append({
+                        "name": val.get('name', f"Athlete {key}"),
+                        "reps": val.get('reps', 0)
+                    })
+        elif isinstance(data, list):
+            for index, val in enumerate(data):
+                if val and isinstance(val, dict):
+                    leaderboard_list.append({
+                        "name": val.get('name', f"Athlete {index}"),
+                        "reps": val.get('reps', 0)
+                    })
 
-    # Styling for buttons
-    st.markdown("""<style>
-        div.stButton > button:first-child { height: 8em; width: 100%; font-size: 40px !important; background-color: #28a745; color: white; }
-        .undo button { height: 3em !important; background-color: #6c757d !important; margin-top: 10px; }
-    </style>""", unsafe_allow_html=True)
+        if leaderboard_list:
+            # Sort: Higher reps = higher rank
+            df = pd.DataFrame(leaderboard_list).sort_values(by="reps", ascending=False).reset_index(drop=True)
 
-    if "Loading" not in selected_athlete:
-        if st.button("➕ SCORE REP"):
-            ref.update({'reps': reps + 1, 'name': a_name})
-            st.rerun()
+            for index, row in df.iterrows():
+                # Filter out the "Loading Athletes..." junk if it exists in DB
+                if "Loading" not in str(row['name']):
+                    st.markdown(f"""
+                        <div class="entry-card">
+                            <div>
+                                <span class="rank-text">#{index + 1}</span>
+                                <span class="name-text">{row['name']}</span>
+                            </div>
+                            <div class="score-text">{row['reps']}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.info(f"No scores recorded yet for {target_wod}")
+    else:
+        st.warning(f"Waiting for judges to start {target_wod}...")
 
-        st.markdown('<div class="undo">', unsafe_allow_html=True)
-        if st.button("➖ UNDO ERROR"):
-            if reps > 0:
-                ref.update({'reps': reps - 1})
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+except Exception as e:
+    st.error(f"Screen Connection Error: {e}")
+
+st.caption("CrossFit Herceg Novi Real-Time Scoring")
