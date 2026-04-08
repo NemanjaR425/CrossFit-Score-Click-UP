@@ -28,7 +28,6 @@ st.markdown("""
     .stApp { background-color: #0b0e14; }
     .block-container { padding-top: 1rem !important; max-width: 500px !important; }
     
-    /* Compact Row Styling */
     .leaderboard-row {
         display: flex;
         justify-content: space-between;
@@ -40,43 +39,18 @@ st.markdown("""
         border-left: 4px solid #2da94f;
     }
     
-    .rank-name-container {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    
-    .rank {
-        color: #888;
-        font-weight: 800;
-        font-size: 14px;
-        min-width: 20px;
-    }
-    
+    .rank-name-container { display: flex; align-items: center; gap: 12px; }
+    .rank { color: #888; font-weight: 800; font-size: 14px; min-width: 20px; }
     .athlete-name {
         color: white;
         font-weight: 500;
-        font-size: 16px; /* Shrunk from your previous version */
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .score-container {
-        text-align: right;
-    }
-    
-    .score-value {
-        color: #2da94f;
-        font-size: 20px;
-        font-weight: 800;
-        display: block;
-    }
-    
-    .score-label {
-        color: #666;
-        font-size: 10px;
+        font-size: 15px; /* Shrunk for better mobile fit */
         text-transform: uppercase;
     }
+    
+    .score-container { text-align: right; }
+    .score-value { color: #2da94f; font-size: 20px; font-weight: 800; display: block; }
+    .score-label { color: #666; font-size: 10px; text-transform: uppercase; }
 
     h1 { color: white !important; font-size: 24px !important; margin-bottom: 20px !important; }
     </style>
@@ -91,18 +65,27 @@ ref = db.reference(db_path)
 data = ref.get()
 
 if data:
-    # Convert Firebase dict to a sorted list
     leaderboard_list = []
-    for athlete_id, info in data.items():
-        leaderboard_list.append({
-            "name": info.get("name", f"ID: {athlete_id}"),
-            "reps": info.get("reps", 0)
-        })
     
-    # Sort by reps descending
+    # FIX: Handle data whether it returns as a List or a Dictionary
+    if isinstance(data, dict):
+        for athlete_id, info in data.items():
+            if info: # Ensure info is not null
+                leaderboard_list.append({
+                    "name": info.get("name", f"ID: {athlete_id}"),
+                    "reps": info.get("reps", 0)
+                })
+    elif isinstance(data, list):
+        for idx, info in enumerate(data):
+            if info: # Lists from Firebase often have 'None' at index 0
+                leaderboard_list.append({
+                    "name": info.get("name", f"ID: {idx}"),
+                    "reps": info.get("reps", 0)
+                })
+    
+    # Sort and Render
     sorted_data = sorted(leaderboard_list, key=lambda x: x['reps'], reverse=True)
 
-    # Render as custom Mobile Cards
     for i, entry in enumerate(sorted_data):
         st.markdown(f"""
             <div class="leaderboard-row">
