@@ -52,7 +52,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 4. HEADER & WOD SELECTOR ---
-st.title("🏆 HERCEG NOVI LIVE LEADERBOARD")
+st.title("🏆 WOD Rezulat")
 
 # This allows you to toggle the screen between the 6 different workouts
 target_wod = st.selectbox(
