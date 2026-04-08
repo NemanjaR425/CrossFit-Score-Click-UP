@@ -65,52 +65,36 @@ st.markdown("""
 
     /* --- NAVIGATION FOCUS BUTTONS --- */
     
-    /* 1. DOMINANT Green Button (+) */
-    div[data-testid="stButton"]:nth-of-type(1) button {
-        width: 88vw !important; /* Maximized for focus */
-        height: 88vw !important;
-        max-width: 350px !important;
-        max-height: 350px !important;
-        background-color: #2da94f !important;
-        border-radius: 50% !important;
-        border: none !important;
-        margin: 35px auto !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        box-shadow: 0 15px 45px rgba(45, 169, 79, 0.4) !important;
-    }
-    div[data-testid="stButton"]:nth-of-type(1) button p {
-        font-size: 180px !important;
-        font-weight: 100 !important;
-        color: white !important;
-    }
+   /* 1. THE MASSIVE PLUS (+) */
+div[data-testid="stButton"]:nth-of-type(1) button {
+    width: 80vw !important;   /* Scales with screen */
+    height: 80vw !important;
+    max-width: 350px !important; 
+    max-height: 350px !important;
+    background-color: #2da94f !important;
+    border-radius: 50% !important;
+    margin: 30px auto !important;
+}
+div[data-testid="stButton"]:nth-of-type(1) button p {
+    font-size: 40vw !important; /* Icon also scales! */
+}
 
-    /* 2. TINY Orange Button (-) Pinned to Corner */
-    div[data-testid="stButton"]:nth-of-type(2) button {
-        position: fixed !important;
-        bottom: 30px !important;
-        right: 25px !important;
-        width: 25px !important; /* Shrunk for better navigation */
-        height: 25px !important;
-        background-color: #ff8a50 !important; 
-        border-radius: 50% !important;
-        border: none !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.5) !important;
-        z-index: 9999;
-    }
-    div[data-testid="stButton"]:nth-of-type(2) button p {
-        font-size: 50px !important;
-        font-weight: 100 !important;
-        color: white !important;
-    }
-
-    /* Active Haptic Feedback */
-    button:active { transform: scale(0.9) !important; }
-    </style>
+   /* 2. THE SMALL ORANGE (-) */
+div[data-testid="stButton"]:nth-of-type(2) button {
+    position: fixed !important;
+    bottom: 40px !important;
+    right: 30px !important;
+    width: 20vw !important;   /* Also scales with screen (25% of the +) */
+    height: 20vw !important;
+    max-width: 80px !important;
+    max-height: 80px !important;
+    background-color: #ff8a50 !important;
+    border-radius: 50% !important;
+}
+div[data-testid="stButton"]:nth-of-type(2) button p {
+    font-size: 10vw !important; /* Icon also scales! */
+}
+</style>
     """, unsafe_allow_html=True)
 
 # --- 5. APP UI ---
