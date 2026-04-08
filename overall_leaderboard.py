@@ -51,7 +51,7 @@ st.markdown("""
 
 # --- 4. DATA PROCESSING ---
 st.title("🥇 Rezultat")
-st.markdown("### Cumulative Score Across All 6 WODs")
+st.markdown("### Generalni rezulat za svih 6 WOD")
 
 try:
     # Pull the entire competition tree
