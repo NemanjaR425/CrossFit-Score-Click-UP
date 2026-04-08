@@ -4,7 +4,7 @@ from firebase_admin import credentials, db
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. CONFIG ---
+# --- 1. CONFIG & REFRESH ---
 st.set_page_config(page_title="Judge Clicker", layout="centered", initial_sidebar_state="collapsed")
 st_autorefresh(interval=3000, key="datarefresh") 
 
@@ -35,69 +35,87 @@ def get_athletes():
 athlete_list = get_athletes()
 wod_list = ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"]
 
-# --- 4. THE "MAX-FOCUS" DESIGN ---
+# --- 4. THE UI (Uniform Scaling with 'vw') ---
 st.markdown("""
     <style>
-    /* Global Container */
+    /* Background & Container */
     .stApp { background-color: #0b0e14; overflow-x: hidden; }
-    .block-container { max-width: 450px !important; padding-top: 1.5rem !important; margin: auto; }
+    .block-container { max-width: 450px !important; padding-top: 1rem !important; margin: auto; }
     
-    /* Header & Selectors */
+    /* Text styling */
     h1 { font-size: 32px !important; font-weight: 800 !important; color: white !important; }
     .stSelectbox label p { font-size: 16px !important; color: #888 !important; }
     
-    /* Rep Counter Box */
-    .score-ui { display: flex; align-items: center; gap: 15px; margin: 20px 0; }
+    /* Rep Counter Display */
+    .score-ui { display: flex; align-items: center; gap: 15px; margin: 15px 0; }
     .score-box {
         background: #1a1e26;
         border: 2px solid #333;
         border-radius: 18px;
-        width: 125px;
-        height: 110px;
+        width: 120px;
+        height: 100px;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 70px !important;
+        font-size: 65px !important;
         font-weight: 900;
         color: white;
     }
-    .reps-text { font-size: 70px; font-weight: 300; color: white; }
+    .reps-text { font-size: 65px; font-weight: 300; color: white; }
 
-    /* --- NAVIGATION FOCUS BUTTONS --- */
+    /* --- THE BUTTONS --- */
     
-   /* 1. THE MASSIVE PLUS (+) */
-div[data-testid="stButton"]:nth-of-type(1) button {
-    width: 80vw !important;   /* Scales with screen */
-    height: 80vw !important;
-    max-width: 350px !important; 
-    max-height: 350px !important;
-    background-color: #2da94f !important;
-    border-radius: 50% !important;
-    margin: 30px auto !important;
-}
-div[data-testid="stButton"]:nth-of-type(1) button p {
-    font-size: 40vw !important; /* Icon also scales! */
-}
+    /* 1. GREEN PLUS (+) - Large & Central */
+    div[data-testid="stButton"]:nth-of-type(1) button {
+        width: 80vw !important;
+        height: 80vw !important;
+        max-width: 340px !important;
+        max-height: 340px !important;
+        background-color: #2da94f !important;
+        border-radius: 50% !important;
+        border: none !important;
+        margin: 30px auto !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-shadow: 0 15px 40px rgba(45, 169, 79, 0.4) !important;
+    }
+    div[data-testid="stButton"]:nth-of-type(1) button p {
+        font-size: 40vw !important; /* Scale icon with button */
+        font-weight: 100 !important;
+        color: white !important;
+    }
 
-   /* 2. THE SMALL ORANGE (-) */
-div[data-testid="stButton"]:nth-of-type(2) button {
-    position: fixed !important;
-    bottom: 40px !important;
-    right: 30px !important;
-    width: 20vw !important;   /* Also scales with screen (25% of the +) */
-    height: 20vw !important;
-    max-width: 80px !important;
-    max-height: 80px !important;
-    background-color: #ff8a50 !important;
-    border-radius: 50% !important;
-}
-div[data-testid="stButton"]:nth-of-type(2) button p {
-    font-size: 10vw !important; /* Icon also scales! */
-}
-</style>
+    /* 2. ORANGE MINUS (-) - Small & Pinned */
+    div[data-testid="stButton"]:nth-of-type(2) button {
+        position: fixed !important;
+        bottom: 40px !important;
+        right: 30px !important;
+        width: 18vw !important; /* Fixed relative size */
+        height: 18vw !important;
+        max-width: 75px !important;
+        max-height: 75px !important;
+        background-color: #ff8a50 !important; 
+        border-radius: 50% !important;
+        border: none !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5) !important;
+        z-index: 9999;
+    }
+    div[data-testid="stButton"]:nth-of-type(2) button p {
+        font-size: 10vw !important; /* Scale icon with button */
+        font-weight: 100 !important;
+        color: white !important;
+    }
+
+    /* Interaction effect */
+    button:active { transform: scale(0.92) !important; }
+    </style>
     """, unsafe_allow_html=True)
 
-# --- 5. APP UI ---
+# --- 5. APP LOGIC ---
 st.title("Judge Clicker")
 
 selected_wod = st.selectbox("Select WOD:", wod_list)
@@ -112,7 +130,6 @@ if a_id != "0":
     current_data = ref.get()
     reps = current_data.get('reps', 0) if current_data else 0
 
-    # Large Score Counter
     st.markdown(f"""
         <div class="score-ui">
             <div class="score-box">{reps}</div>
@@ -120,12 +137,12 @@ if a_id != "0":
         </div>
     """, unsafe_allow_html=True)
 
-    # Big Green Plus Button
+    # Big Green Plus (Always first button in code)
     if st.button("+", key="p"):
         ref.update({'reps': reps + 1, 'name': a_name})
         st.rerun()
 
-    # Small Orange Minus Button
+    # Small Orange Minus (Always second button in code)
     if st.button("-", key="m"):
         if reps > 0:
             ref.update({'reps': reps - 1})
