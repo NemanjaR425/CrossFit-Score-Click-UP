@@ -1,12 +1,11 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
-import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
 # --- 1. CONFIG & REFRESH ---
-st.set_page_config(page_title="Leaderboard", layout="centered")
-st_autorefresh(interval=5000, key="leaderboard_refresh")
+st.set_page_config(page_title="Overall Leaderboard", layout="centered")
+st_autorefresh(interval=5000, key="overall_refresh")
 
 # --- 2. FIREBASE CONNECTION ---
 if not firebase_admin._apps:
@@ -22,7 +21,7 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. STYLING (The Mobile Redesign) ---
+# --- 3. STYLING ---
 st.markdown("""
     <style>
     .stApp { background-color: #0b0e14; }
@@ -33,71 +32,77 @@ st.markdown("""
         justify-content: space-between;
         align-items: center;
         background: #1a1e26;
-        padding: 10px 15px;
-        margin-bottom: 6px;
-        border-radius: 8px;
-        border-left: 4px solid #2da94f;
+        padding: 12px 15px;
+        margin-bottom: 8px;
+        border-radius: 10px;
+        border-left: 4px solid #ff8a50; /* Orange for Overall */
     }
     
     .rank-name-container { display: flex; align-items: center; gap: 12px; }
-    .rank { color: #888; font-weight: 800; font-size: 14px; min-width: 20px; }
+    .rank { color: #ff8a50; font-weight: 800; font-size: 16px; min-width: 25px; }
     .athlete-name {
         color: white;
-        font-weight: 500;
-        font-size: 15px; /* Shrunk for better mobile fit */
+        font-weight: 600;
+        font-size: 15px;
         text-transform: uppercase;
     }
     
     .score-container { text-align: right; }
-    .score-value { color: #2da94f; font-size: 20px; font-weight: 800; display: block; }
-    .score-label { color: #666; font-size: 10px; text-transform: uppercase; }
+    .total-score { color: #ffffff; font-size: 22px; font-weight: 800; display: block; }
+    .score-label { color: #666; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
 
-    h1 { color: white !important; font-size: 24px !important; margin-bottom: 20px !important; }
+    h1 { color: white !important; font-size: 28px !important; text-align: center; margin-bottom: 25px !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. DATA LOGIC ---
-st.title("🏆 Leaderboard")
+# --- 4. DATA AGGREGATION LOGIC ---
+st.title("🏆 GENERAL STANDINGS")
 
-selected_wod = st.selectbox("Select Event", ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"])
-db_path = f'competitions/{selected_wod.replace(" ", "_")}'
-ref = db.reference(db_path)
-data = ref.get()
+# We fetch the entire 'competitions' node
+ref = db.reference('competitions')
+all_data = ref.get()
 
-if data:
-    leaderboard_list = []
-    
-    # FIX: Handle data whether it returns as a List or a Dictionary
-    if isinstance(data, dict):
-        for athlete_id, info in data.items():
-            if info: # Ensure info is not null
-                leaderboard_list.append({
-                    "name": info.get("name", f"ID: {athlete_id}"),
-                    "reps": info.get("reps", 0)
-                })
-    elif isinstance(data, list):
-        for idx, info in enumerate(data):
-            if info: # Lists from Firebase often have 'None' at index 0
-                leaderboard_list.append({
-                    "name": info.get("name", f"ID: {idx}"),
-                    "reps": info.get("reps", 0)
-                })
-    
-    # Sort and Render
-    sorted_data = sorted(leaderboard_list, key=lambda x: x['reps'], reverse=True)
+if all_data:
+    # Dictionary to store totals: { athlete_id: {"name": str, "total_reps": int} }
+    totals = {}
 
-    for i, entry in enumerate(sorted_data):
+    for wod_name, athletes in all_data.items():
+        if isinstance(athletes, dict):
+            for a_id, info in athletes.items():
+                if info:
+                    name = info.get("name", f"ID: {a_id}")
+                    reps = info.get("reps", 0)
+                    
+                    if a_id not in totals:
+                        totals[a_id] = {"name": name, "total_reps": 0}
+                    totals[a_id]["total_reps"] += reps
+                    
+        elif isinstance(athletes, list):
+            for idx, info in enumerate(athletes):
+                if info:
+                    name = info.get("name", f"ID: {idx}")
+                    reps = info.get("reps", 0)
+                    
+                    if str(idx) not in totals:
+                        totals[str(idx)] = {"name": name, "total_reps": 0}
+                    totals[str(idx)]["total_reps"] += reps
+
+    # Sort by total reps
+    sorted_overall = sorted(totals.values(), key=lambda x: x['total_reps'], reverse=True)
+
+    # Render Standings
+    for i, entry in enumerate(sorted_overall):
         st.markdown(f"""
             <div class="leaderboard-row">
                 <div class="rank-name-container">
-                    <span class="rank">{i+1}</span>
+                    <span class="rank">#{i+1}</span>
                     <span class="athlete-name">{entry['name']}</span>
                 </div>
                 <div class="score-container">
-                    <span class="score-value">{entry['reps']}</span>
-                    <span class="score-label">Reps</span>
+                    <span class="total-score">{entry['total_reps']}</span>
+                    <span class="score-label">Total Reps</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 else:
-    st.info("No data recorded for this WOD yet.")
+    st.info("Waiting for competition data to sync...")
