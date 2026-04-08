@@ -4,8 +4,8 @@ from firebase_admin import credentials, db
 from streamlit_autorefresh import st_autorefresh
 
 # --- 1. CONFIG & REFRESH ---
-st.set_page_config(page_title="Live Leaderboard", layout="centered")
-st_autorefresh(interval=2000, key="live_refresh") # Fast 2s refresh
+st.set_page_config(page_title="Live WOD Tracker", layout="centered")
+st_autorefresh(interval=2000, key="live_refresh")
 
 # --- 2. FIREBASE CONNECTION ---
 if not firebase_admin._apps:
@@ -21,66 +21,69 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. MOBILE GRID STYLING ---
+# --- 3. STYLING (Matching overall_leaderboard design) ---
 st.markdown("""
     <style>
     .stApp { background-color: #0b0e14; }
-    .block-container { padding-top: 1rem !important; max-width: 600px !important; }
+    .block-container { padding-top: 1rem !important; max-width: 500px !important; }
     
-    /* Grid Container */
-    .live-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr); /* 2 columns on mobile */
-        gap: 12px;
-        margin-top: 15px;
+    /* Card Row Styling */
+    .leaderboard-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #1a1e26;
+        padding: 12px 18px;
+        margin-bottom: 8px;
+        border-radius: 10px;
+        border-left: 4px solid #2da94f; /* Green for live WOD */
     }
     
-    /* Athlete Score Card */
-    .athlete-card {
-        background: #1a1e26;
-        border-radius: 12px;
-        padding: 15px 10px;
-        text-align: center;
-        border: 1px solid #333;
+    .rank-name-container {
         display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-height: 100px;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .rank {
+        color: #888;
+        font-weight: 800;
+        font-size: 14px;
+        min-width: 20px;
     }
     
     .athlete-name {
-        color: #aaa;
-        font-size: 13px;
-        text-transform: uppercase;
+        color: white;
         font-weight: 600;
-        margin-bottom: 5px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
+        font-size: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     
-    .athlete-score {
+    .score-container {
+        text-align: right;
+    }
+    
+    .score-value {
         color: #2da94f;
-        font-size: 42px;
-        font-weight: 900;
+        font-size: 22px;
+        font-weight: 800;
+        display: block;
         line-height: 1;
     }
     
-    .reps-label {
-        color: #555;
+    .score-label {
+        color: #444;
         font-size: 10px;
         text-transform: uppercase;
-        margin-top: 4px;
-        letter-spacing: 1px;
+        font-weight: bold;
     }
 
-    h1 { color: white !important; font-size: 24px !important; text-align: center; margin-bottom: 10px !important; }
+    h1 { color: white !important; font-size: 26px !important; text-align: center; margin-bottom: 20px !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. DISPLAY LOGIC ---
+# --- 4. DATA & DISPLAY LOGIC ---
 st.title("⚡ LIVE WOD TRACKER")
 
 selected_wod = st.selectbox("Select Event", ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"])
@@ -90,32 +93,40 @@ ref = db.reference(db_path)
 data = ref.get()
 
 if data:
-    # Convert data into a clean list
-    athletes_list = []
-    if isinstance(data, dict):
-        athletes_list = [info for info in data.values() if info]
-    elif isinstance(data, list):
-        athletes_list = [info for info in data if info]
-
-    # Sort by reps descending
-    athletes_list = sorted(athletes_list, key=lambda x: x.get('reps', 0), reverse=True)
-
-    # Generate Grid HTML
-    grid_html = '<div class="live-grid">'
-    for athlete in athletes_list:
-        name = athlete.get('name', 'Unknown')
-        reps = athlete.get('reps', 0)
-        
-        grid_html += f"""
-            <div class="athlete-card">
-                <div class="athlete-name">{name}</div>
-                <div class="athlete-score">{reps}</div>
-                <div class="reps-label">Reps</div>
-            </div>
-        """
-    grid_html += '</div>'
+    leaderboard_list = []
     
-    # --- THE CRITICAL FIX IS HERE ---
-    st.markdown(grid_html, unsafe_allow_html=True) 
+    # Standardizing data fetch to handle dicts or lists
+    if isinstance(data, dict):
+        for athlete_id, info in data.items():
+            if info:
+                leaderboard_list.append({
+                    "name": info.get("name", f"ID: {athlete_id}"),
+                    "reps": info.get("reps", 0)
+                })
+    elif isinstance(data, list):
+        for idx, info in enumerate(data):
+            if info:
+                leaderboard_list.append({
+                    "name": info.get("name", f"ID: {idx}"),
+                    "reps": info.get("reps", 0)
+                })
+    
+    # Sort by reps descending
+    sorted_data = sorted(leaderboard_list, key=lambda x: x['reps'], reverse=True)
+
+    # Render as Cards
+    for i, entry in enumerate(sorted_data):
+        st.markdown(f"""
+            <div class="leaderboard-row">
+                <div class="rank-name-container">
+                    <span class="rank">{i+1}</span>
+                    <span class="athlete-name">{entry['name']}</span>
+                </div>
+                <div class="score-container">
+                    <span class="score-value">{entry['reps']}</span>
+                    <span class="score-label">Reps</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 else:
-    st.info("No live athletes in this heat yet.")
+    st.info("No live data for this WOD yet.")
