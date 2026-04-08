@@ -60,7 +60,7 @@ st.markdown("""
 
 # --- 4. TOP LOGO SECTION ---
 # Change LOGO_SIZE to adjust the width in pixels
-LOGO_SIZE = 100
+LOGO_SIZE = 150
 
 try:
     # We use 'width' instead of 'use_container_width' to control scaling
