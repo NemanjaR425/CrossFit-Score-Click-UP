@@ -35,11 +35,13 @@ st.markdown("""
         padding: 12px 15px;
         margin-bottom: 8px;
         border-radius: 10px;
-        border-left: 4px solid #ff8a50; /* Orange for Overall */
+        border-left: 4px solid #ff8a50;
     }
     
-    .rank-name-container { display: flex; align-items: center; gap: 12px; }
-    .rank { color: #ff8a50; font-weight: 800; font-size: 16px; min-width: 25px; }
+    .info-container { display: flex; flex-direction: column; gap: 4px; }
+    .rank-name { display: flex; align-items: center; gap: 10px; }
+    
+    .rank { color: #ff8a50; font-weight: 800; font-size: 16px; }
     .athlete-name {
         color: white;
         font-weight: 600;
@@ -47,62 +49,74 @@ st.markdown("""
         text-transform: uppercase;
     }
     
-    .score-container { text-align: right; }
-    .total-score { color: #ffffff; font-size: 22px; font-weight: 800; display: block; }
-    .score-label { color: #666; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+    /* The Breakdown Text */
+    .breakdown {
+        color: #666;
+        font-size: 11px;
+        font-family: monospace;
+        letter-spacing: 0.5px;
+    }
 
-    h1 { color: white !important; font-size: 28px !important; text-align: center; margin-bottom: 25px !important; }
+    .score-container { text-align: right; }
+    .total-score { color: #ffffff; font-size: 22px; font-weight: 800; display: block; line-height: 1; }
+    .score-label { color: #444; font-size: 9px; text-transform: uppercase; font-weight: bold; }
+
+    h1 { color: white !important; font-size: 26px !important; text-align: center; margin-bottom: 20px !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. DATA AGGREGATION LOGIC ---
+# --- 4. DATA AGGREGATION ---
 st.title("🏆 GENERAL STANDINGS")
 
-# We fetch the entire 'competitions' node
 ref = db.reference('competitions')
 all_data = ref.get()
 
 if all_data:
-    # Dictionary to store totals: { athlete_id: {"name": str, "total_reps": int} }
+    # totals structure: { a_id: {"name": str, "total": int, "wods": {wod_name: reps}} }
     totals = {}
 
-    for wod_name, athletes in all_data.items():
-        if isinstance(athletes, dict):
-            for a_id, info in athletes.items():
-                if info:
-                    name = info.get("name", f"ID: {a_id}")
-                    reps = info.get("reps", 0)
-                    
-                    if a_id not in totals:
-                        totals[a_id] = {"name": name, "total_reps": 0}
-                    totals[a_id]["total_reps"] += reps
-                    
-        elif isinstance(athletes, list):
-            for idx, info in enumerate(athletes):
-                if info:
-                    name = info.get("name", f"ID: {idx}")
-                    reps = info.get("reps", 0)
-                    
-                    if str(idx) not in totals:
-                        totals[str(idx)] = {"name": name, "total_reps": 0}
-                    totals[str(idx)]["total_reps"] += reps
+    for wod_key, athletes in all_data.items():
+        # Clean WOD name for display (e.g., "WOD_1" -> "W1")
+        display_wod = wod_key.replace("WOD_", "W") 
+        
+        # Normalize to list for iteration
+        athlete_items = athletes.items() if isinstance(athletes, dict) else enumerate(athletes)
+        
+        for a_id, info in athlete_items:
+            if info:
+                a_id_str = str(a_id)
+                name = info.get("name", f"ID: {a_id_str}")
+                reps = info.get("reps", 0)
+                
+                if a_id_str not in totals:
+                    totals[a_id_str] = {"name": name, "total": 0, "breakdown": {}}
+                
+                totals[a_id_str]["total"] += reps
+                totals[a_id_str]["breakdown"][display_wod] = reps
 
-    # Sort by total reps
-    sorted_overall = sorted(totals.values(), key=lambda x: x['total_reps'], reverse=True)
+    # Sort by total reps descending
+    sorted_overall = sorted(totals.values(), key=lambda x: x['total'], reverse=True)
 
-    # Render Standings
+    # --- 5. RENDER ---
     for i, entry in enumerate(sorted_overall):
+        # Create the breakdown string: "W1: 20 | W2: 15..."
+        b_list = [f"{k}:{v}" for k, v in sorted(entry['breakdown'].items())]
+        breakdown_str = " • ".join(b_list)
+
         st.markdown(f"""
             <div class="leaderboard-row">
-                <div class="rank-name-container">
-                    <span class="rank">#{i+1}</span>
-                    <span class="athlete-name">{entry['name']}</span>
+                <div class="info-container">
+                    <div class="rank-name">
+                        <span class="rank">#{i+1}</span>
+                        <span class="athlete-name">{entry['name']}</span>
+                    </div>
+                    <div class="breakdown">{breakdown_str}</div>
                 </div>
                 <div class="score-container">
-                    <span class="total-score">{entry['total_reps']}</span>
+                    <span class="total-score">{entry['total']}</span>
                     <span class="score-label">Total Reps</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 else:
-    st.info("Waiting for competition data to sync...")
+    st.info("Syncing competition data...")
