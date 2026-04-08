@@ -4,7 +4,7 @@ from firebase_admin import credentials, db
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. CONFIG & LIVE REFRESH ---
+# --- 1. CONFIG ---
 st.set_page_config(page_title="Judge Clicker", layout="centered", initial_sidebar_state="collapsed")
 st_autorefresh(interval=3000, key="datarefresh") 
 
@@ -35,83 +35,81 @@ def get_athletes():
 athlete_list = get_athletes()
 wod_list = ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"]
 
-# --- 4. THE DESIGN (Aggressive CSS for Round Buttons) ---
+# --- 4. THE "MAX-FOCUS" DESIGN ---
 st.markdown("""
     <style>
-    /* Global Styles */
+    /* Global Container */
     .stApp { background-color: #0b0e14; overflow-x: hidden; }
     .block-container { max-width: 450px !important; padding-top: 1.5rem !important; margin: auto; }
     
     /* Header & Selectors */
-    h1 { font-size: 34px !important; font-weight: 800 !important; color: white !important; margin-bottom: 5px !important; }
-    .stSelectbox label p { font-size: 16px !important; color: #aaa !important; margin-bottom: 2px !important; }
+    h1 { font-size: 32px !important; font-weight: 800 !important; color: white !important; }
+    .stSelectbox label p { font-size: 16px !important; color: #888 !important; }
     
-    /* Rep Counter Display */
-    .score-ui { display: flex; align-items: center; gap: 20px; margin: 25px 0; }
+    /* Rep Counter Box */
+    .score-ui { display: flex; align-items: center; gap: 15px; margin: 20px 0; }
     .score-box {
         background: #1a1e26;
         border: 2px solid #333;
         border-radius: 18px;
         width: 125px;
-        height: 120px;
+        height: 110px;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 75px !important;
+        font-size: 70px !important;
         font-weight: 900;
         color: white;
     }
-    .reps-text { font-size: 75px; font-weight: 300; color: white; }
+    .reps-text { font-size: 70px; font-weight: 300; color: white; }
 
-    /* --- THE BUTTONS --- */
+    /* --- NAVIGATION FOCUS BUTTONS --- */
     
-    /* 1. HUGE Green Button (+) */
+    /* 1. DOMINANT Green Button (+) */
     div[data-testid="stButton"]:nth-of-type(1) button {
-        width: 80vw !important;
-        height: 80vw !important;
-        max-width: 340px !important;
-        max-height: 340px !important;
+        width: 88vw !important; /* Maximized for focus */
+        height: 88vw !important;
+        max-width: 350px !important;
+        max-height: 350px !important;
         background-color: #2da94f !important;
         border-radius: 50% !important;
         border: none !important;
-        margin: 40px auto !important;
+        margin: 35px auto !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
         box-shadow: 0 15px 45px rgba(45, 169, 79, 0.4) !important;
     }
     div[data-testid="stButton"]:nth-of-type(1) button p {
-        font-size: 160px !important;
+        font-size: 180px !important;
         font-weight: 100 !important;
         color: white !important;
-        line-height: 0 !important;
     }
 
-    /* 2. SMALL Orange Button (-) Pinned to Bottom Right */
+    /* 2. TINY Orange Button (-) Pinned to Corner */
     div[data-testid="stButton"]:nth-of-type(2) button {
         position: fixed !important;
-        bottom: 50px !important;
-        right: 30px !important;
-        width: 90px !important;
-        height: 90px !important;
-        background-color: #ff8a50 !important; /* Safety Orange */
+        bottom: 30px !important;
+        right: 25px !important;
+        width: 65px !important; /* Shrunk for better navigation */
+        height: 65px !important;
+        background-color: #ff8a50 !important; 
         border-radius: 50% !important;
         border: none !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
-        box-shadow: 0 8px 25px rgba(255, 138, 80, 0.4) !important;
-        z-index: 1000;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5) !important;
+        z-index: 9999;
     }
     div[data-testid="stButton"]:nth-of-type(2) button p {
-        font-size: 80px !important;
+        font-size: 50px !important;
         font-weight: 100 !important;
         color: white !important;
-        line-height: 0 !important;
     }
 
-    /* Animation */
-    button:active { transform: scale(0.9) !important; opacity: 0.8; }
+    /* Active Haptic Feedback */
+    button:active { transform: scale(0.9) !important; }
     </style>
     """, unsafe_allow_html=True)
 
