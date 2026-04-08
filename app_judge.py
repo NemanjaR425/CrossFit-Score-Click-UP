@@ -4,9 +4,9 @@ from firebase_admin import credentials, db
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. CONFIG & REFRESH ---
+# --- 1. CONFIG ---
 st.set_page_config(page_title="Judge Clicker", layout="centered", initial_sidebar_state="collapsed")
-st_autorefresh(interval=3000, key="datarefresh") # Keeps rep count live
+st_autorefresh(interval=3000, key="datarefresh")
 
 # --- 2. FIREBASE CONNECTION ---
 if not firebase_admin._apps:
@@ -35,89 +35,106 @@ def get_athletes():
 athlete_list = get_athletes()
 wod_list = ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"]
 
-# --- 4. THE DESIGN (Custom Mobile CSS) ---
+# --- 4. THE UI OVERHAUL (Targeting image_e940c8.png) ---
 st.markdown("""
     <style>
-    /* 1. Global Reset & Mobile Focus */
+    /* Global Reset */
     .stApp { background-color: #0b0e14; }
-    .block-container { padding: 1rem !important; max-width: 400px !important; margin: auto; }
     
-    /* 2. Header & Selectors */
-    h1 { font-size: 32px !important; font-weight: 800; text-align: left; margin-bottom: 20px !important; }
-    .stSelectbox label { font-size: 18px !important; font-weight: 600 !important; color: #fff !important; margin-bottom: 5px !important; }
-    .stSelectbox div[data-baseweb="select"] { background-color: #1a1e26 !important; border: 1px solid #333 !important; border-radius: 10px !important; }
-
-    /* 3. The Rep Score Box (Matches image_e940c8.png) */
-    .score-container {
+    /* Limit width to look like a phone on desktop */
+    .block-container { 
+        max-width: 450px !important; 
+        padding-top: 2rem !important; 
+        margin: auto; 
+    }
+    
+    /* Header Style */
+    h1 { font-size: 36px !important; font-weight: 800 !important; margin-bottom: 15px !important; }
+    
+    /* Selectbox labels */
+    .stSelectbox label p { font-size: 20px !important; font-weight: 600 !important; color: white !important; }
+    
+    /* Score Box Layout */
+    .score-ui {
         display: flex;
         align-items: center;
-        justify-content: flex-start;
-        margin: 30px 0;
         gap: 20px;
+        margin: 30px 0;
     }
-    .score-number-box {
+    .score-box {
         background: #1a1e26;
         border: 3px solid #444;
-        border-radius: 20px;
-        width: 120px;
+        border-radius: 18px;
+        width: 130px;
         height: 120px;
         display: flex;
-        align-items: center;
         justify-content: center;
-        font-size: 70px !important;
+        align-items: center;
+        font-size: 75px !important;
         font-weight: 900;
         color: white;
     }
-    .reps-label { font-size: 75px; font-weight: 400; color: white; }
+    .reps-text { font-size: 80px; font-weight: 400; color: white; }
 
-    /* 4. THE BUTTONS (Aggressive Mobile Layout) */
+    /* THE BIG ROUND BUTTONS */
     
-    /* Main Green Rep Up Button (+) */
-    div.stButton > button[kind="secondary"]:has(div:contains("+")) {
-        width: 230px !important;
-        height: 230px !important;
+    /* 1. The Green '+' Button */
+    div[data-testid="stButton"]:nth-of-type(1) button {
+        width: 70vw !important;
+        height: 70vw !important;
+        max-width: 280px !important;
+        max-height: 280px !important;
         background-color: #2da94f !important;
         border-radius: 50% !important;
         border: none !important;
+        margin: 40px auto !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-shadow: 0 12px 40px rgba(45, 169, 79, 0.4) !important;
+    }
+    /* Icon inside Green button */
+    div[data-testid="stButton"]:nth-of-type(1) button p {
+        font-size: 150px !important;
+        font-weight: 200 !important;
         color: white !important;
-        font-size: 140px !important;
-        margin: 20px auto !important;
-        display: block !important;
-        box-shadow: 0 10px 30px rgba(45, 169, 79, 0.3) !important;
-        transition: transform 0.1s;
+        line-height: 0 !important;
     }
 
-    /* Small Orange Undo Button (-) */
-    div.stButton > button[kind="secondary"]:has(div:contains("-")) {
+    /* 2. The Orange '-' Button */
+    div[data-testid="stButton"]:nth-of-type(2) button {
         position: fixed !important;
-        right: 25px !important;
-        bottom: 40px !important;
-        width: 85px !important;
-        height: 85px !important;
+        bottom: 30px !important;
+        right: 30px !important;
+        width: 100px !important;
+        height: 100px !important;
         background-color: #ff8a50 !important;
         border-radius: 50% !important;
         border: none !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-shadow: 0 8px 20px rgba(255, 138, 80, 0.4) !important;
+    }
+    /* Icon inside Orange button */
+    div[data-testid="stButton"]:nth-of-type(2) button p {
+        font-size: 80px !important;
+        font-weight: 200 !important;
         color: white !important;
-        font-size: 70px !important;
-        box-shadow: 0 5px 15px rgba(255, 138, 80, 0.3) !important;
+        line-height: 0 !important;
     }
 
-    /* Feedback on Click */
-    button:active { transform: scale(0.9) !important; }
-    
-    /* Remove padding between elements */
-    .element-container { margin-bottom: -10px !important; }
+    /* Active States (Click Animation) */
+    button:active { transform: scale(0.92) !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 5. APP UI ---
+# --- 5. APP CONTENT ---
 st.title("Judge Clicker")
 
-# Selectors stacked vertically to avoid "wide" feeling
 selected_wod = st.selectbox("Select WOD:", wod_list)
 selected_athlete = st.selectbox("Select Athlete:", athlete_list)
 
-# Parse ID/Name
 a_id = selected_athlete.split("-")[0] if "-" in selected_athlete else "0"
 a_name = selected_athlete.split("-")[1] if "-" in selected_athlete else "None"
 
@@ -127,22 +144,21 @@ if a_id != "0":
     current_data = ref.get()
     reps = current_data.get('reps', 0) if current_data else 0
 
-    # Score Box
+    # Score Box Section
     st.markdown(f"""
-        <div class="score-container">
-            <div class="score-number-box">{reps}</div>
-            <div class="reps-label">REPS</div>
+        <div class="score-ui">
+            <div class="score-box">{reps}</div>
+            <div class="reps-text">REPS</div>
         </div>
     """, unsafe_allow_html=True)
 
-    # Placeholders for the CSS-styled buttons
-    # The green button stays in the normal flow below the score
-    if st.button("+", key="btn_plus"):
+    # Big Green Plus Button
+    if st.button("+", key="p"):
         ref.update({'reps': reps + 1, 'name': a_name})
         st.rerun()
 
-    # The orange button is pinned to the bottom right via CSS
-    if st.button("-", key="btn_minus"):
+    # Smaller Orange Minus Button
+    if st.button("-", key="m"):
         if reps > 0:
             ref.update({'reps': reps - 1})
             st.rerun()
