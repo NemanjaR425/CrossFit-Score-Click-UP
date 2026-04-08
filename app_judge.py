@@ -4,7 +4,7 @@ from firebase_admin import credentials, db
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. CONFIG ---
+# --- 1. CONFIG & REFRESH ---
 st.set_page_config(page_title="Judge Clicker", layout="centered", initial_sidebar_state="collapsed")
 st_autorefresh(interval=3000, key="datarefresh") 
 
@@ -35,11 +35,16 @@ def get_athletes():
 athlete_list = get_athletes()
 wod_list = ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"]
 
-# --- 4. THE UI (Targeted CSS) ---
+# --- 4. THE UI (Uniform Scaling with 'vw') ---
 st.markdown("""
     <style>
+    /* Background & Container */
     .stApp { background-color: #0b0e14; overflow-x: hidden; }
     .block-container { max-width: 450px !important; padding-top: 1rem !important; margin: auto; }
+    
+    /* Text styling */
+    h1 { font-size: 32px !important; font-weight: 800 !important; color: white !important; }
+    .stSelectbox label p { font-size: 16px !important; color: #888 !important; }
     
     /* Rep Counter Display */
     .score-ui { display: flex; align-items: center; gap: 15px; margin: 15px 0; }
@@ -60,27 +65,8 @@ st.markdown("""
 
     /* --- THE BUTTONS --- */
     
-    /* ORANGE MINUS (-) - Targeted specifically */
-    div[data-testid="stButton"]:nth-of-type(2) > button {
-        position: fixed !important;
-        bottom: 40px !important;
-        right: 30px !important;
-        width: 18vw !important;
-        height: 18vw !important;
-        max-width: 75px !important;
-        max-height: 75px !important;
-        background-color: #ff8a50 !important; /* The Orange Color */
-        color: white !important;
-        border-radius: 50% !important;
-        border: none !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        z-index: 9999 !important;
-    }
-
-    /* GREEN PLUS (+) - Large & Central */
-    div[data-testid="stButton"]:nth-of-type(1) > button {
+    /* 1. GREEN PLUS (+) - Large & Central */
+    div[data-testid="stButton"]:nth-of-type(1) button {
         width: 80vw !important;
         height: 80vw !important;
         max-width: 340px !important;
@@ -92,12 +78,39 @@ st.markdown("""
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
+        box-shadow: 0 15px 40px rgba(45, 169, 79, 0.4) !important;
+    }
+    div[data-testid="stButton"]:nth-of-type(1) button p {
+        font-size: 40vw !important; /* Scale icon with button */
+        font-weight: 100 !important;
+        color: white !important;
     }
 
-    /* Icon Sizing inside buttons */
-    div[data-testid="stButton"]:nth-of-type(1) p { font-size: 40vw !important; color: white !important; }
-    div[data-testid="stButton"]:nth-of-type(2) p { font-size: 10vw !important; color: white !important; }
+    /* 2. ORANGE MINUS (-) - Small & Pinned */
+    div[data-testid="stButton"]:nth-of-type(2) button {
+        position: fixed !important;
+        bottom: 40px !important;
+        right: 30px !important;
+        width: 18vw !important; /* Fixed relative size */
+        height: 18vw !important;
+        max-width: 75px !important;
+        max-height: 75px !important;
+        background-color: #ff8a50 !important; 
+        border-radius: 50% !important;
+        border: none !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5) !important;
+        z-index: 9999;
+    }
+    div[data-testid="stButton"]:nth-of-type(2) button p {
+        font-size: 10vw !important; /* Scale icon with button */
+        font-weight: 100 !important;
+        color: white !important;
+    }
 
+    /* Interaction effect */
     button:active { transform: scale(0.92) !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -124,12 +137,12 @@ if a_id != "0":
         </div>
     """, unsafe_allow_html=True)
 
-    # First button: Plus (+)
+    # Big Green Plus (Always first button in code)
     if st.button("+", key="p"):
         ref.update({'reps': reps + 1, 'name': a_name})
         st.rerun()
 
-    # Second button: Minus (-)
+    # Small Orange Minus (Always second button in code)
     if st.button("-", key="m"):
         if reps > 0:
             ref.update({'reps': reps - 1})
