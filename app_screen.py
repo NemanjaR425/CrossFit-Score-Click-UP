@@ -31,7 +31,7 @@ st.markdown("""
     .live-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr); /* 2 columns on mobile */
-        gap: 10px;
+        gap: 12px;
         margin-top: 15px;
     }
     
@@ -45,6 +45,7 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         justify-content: center;
+        min-height: 100px;
     }
     
     .athlete-name {
@@ -53,31 +54,33 @@ st.markdown("""
         text-transform: uppercase;
         font-weight: 600;
         margin-bottom: 5px;
-        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
     }
     
     .athlete-score {
         color: #2da94f;
-        font-size: 38px;
+        font-size: 42px;
         font-weight: 900;
         line-height: 1;
     }
     
     .reps-label {
         color: #555;
-        font-size: 9px;
+        font-size: 10px;
         text-transform: uppercase;
-        margin-top: 2px;
+        margin-top: 4px;
+        letter-spacing: 1px;
     }
 
-    h1 { color: white !important; font-size: 22px !important; text-align: center; margin-bottom: 0 !important; }
-    .stSelectbox { margin-bottom: 20px !important; }
+    h1 { color: white !important; font-size: 24px !important; text-align: center; margin-bottom: 10px !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. DISPLAY LOGIC (FIXED) ---
+# --- 4. DISPLAY LOGIC ---
 st.title("⚡ LIVE WOD TRACKER")
 
 selected_wod = st.selectbox("Select Event", ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"])
@@ -87,15 +90,17 @@ ref = db.reference(db_path)
 data = ref.get()
 
 if data:
+    # Convert data into a clean list
     athletes_list = []
     if isinstance(data, dict):
         athletes_list = [info for info in data.values() if info]
     elif isinstance(data, list):
         athletes_list = [info for info in data if info]
 
+    # Sort by reps descending
     athletes_list = sorted(athletes_list, key=lambda x: x.get('reps', 0), reverse=True)
 
-    # Start building the string
+    # Generate Grid HTML
     grid_html = '<div class="live-grid">'
     for athlete in athletes_list:
         name = athlete.get('name', 'Unknown')
@@ -110,7 +115,7 @@ if data:
         """
     grid_html += '</div>'
     
-    # CRITICAL FIX: Added unsafe_allow_html=True
+    # --- THE CRITICAL FIX IS HERE ---
     st.markdown(grid_html, unsafe_allow_html=True) 
 else:
     st.info("No live athletes in this heat yet.")
