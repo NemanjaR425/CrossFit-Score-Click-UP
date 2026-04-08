@@ -27,11 +27,11 @@ st.markdown("""
     .stApp { background-color: #0b0e14; }
     .block-container { padding-top: 1rem !important; max-width: 500px !important; }
     
-    /* Logo Styling */
-    .logo-container {
+    /* Center the logo container */
+    [data-testid="stImage"] {
         display: flex;
         justify-content: center;
-        margin-bottom: -10px;
+        margin-bottom: 10px;
     }
 
     .leaderboard-row {
@@ -54,16 +54,18 @@ st.markdown("""
     .total-score { color: #ffffff; font-size: 22px; font-weight: 800; display: block; line-height: 1; }
     .score-label { color: #444; font-size: 9px; text-transform: uppercase; font-weight: bold; }
 
-    h1 { color: white !important; font-size: 26px !important; text-align: center; margin-top: 10px !important; margin-bottom: 20px !important; }
+    h1 { color: white !important; font-size: 26px !important; text-align: center; margin-top: 0px !important; }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 4. TOP LOGO SECTION ---
-# Change "logo.png" to your actual filename
+# Change LOGO_SIZE to adjust the width in pixels
+LOGO_SIZE = 100
+
 try:
-    st.image("logo.png", use_container_width=True) 
+    # We use 'width' instead of 'use_container_width' to control scaling
+    st.image("logo.png", width=LOGO_SIZE) 
 except:
-    # If file is missing, we show the title without crashing
     st.title("🏆 GENERAL STANDINGS")
 
 # --- 5. DATA AGGREGATION ---
