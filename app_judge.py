@@ -35,85 +35,74 @@ def get_athletes():
 athlete_list = get_athletes()
 wod_list = ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"]
 
-# --- 4. THE "MAX-FOCUS" DESIGN ---
+# --- 4. THE UI (Targeted CSS) ---
 st.markdown("""
     <style>
-    /* Global Container */
     .stApp { background-color: #0b0e14; overflow-x: hidden; }
-    .block-container { max-width: 450px !important; padding-top: 1.5rem !important; margin: auto; }
+    .block-container { max-width: 450px !important; padding-top: 1rem !important; margin: auto; }
     
-    /* Header & Selectors */
-    h1 { font-size: 32px !important; font-weight: 800 !important; color: white !important; }
-    .stSelectbox label p { font-size: 16px !important; color: #888 !important; }
-    
-    /* Rep Counter Box */
-    .score-ui { display: flex; align-items: center; gap: 15px; margin: 20px 0; }
+    /* Rep Counter Display */
+    .score-ui { display: flex; align-items: center; gap: 15px; margin: 15px 0; }
     .score-box {
         background: #1a1e26;
         border: 2px solid #333;
         border-radius: 18px;
-        width: 125px;
-        height: 110px;
+        width: 120px;
+        height: 100px;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 70px !important;
+        font-size: 65px !important;
         font-weight: 900;
         color: white;
     }
-    .reps-text { font-size: 70px; font-weight: 300; color: white; }
+    .reps-text { font-size: 65px; font-weight: 300; color: white; }
 
-    /* --- NAVIGATION FOCUS BUTTONS --- */
+    /* --- THE BUTTONS --- */
     
-    /* 1. DOMINANT Green Button (+) */
-    div[data-testid="stButton"]:nth-of-type(1) button {
-        width: 88vw !important; /* Maximized for focus */
-        height: 88vw !important;
-        max-width: 350px !important;
-        max-height: 350px !important;
-        background-color: #2da94f;
-        border-radius: 50% !important;
-        border: none !important;
-        margin: 35px auto !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        box-shadow: 0 15px 45px rgba(45, 169, 79, 0.4) !important;
-    }
-    div[data-testid="stButton"]:nth-of-type(1) button p {
-        font-size: 180px !important;
-        font-weight: 100 !important;
-        color: white !important;
-    }
-
-    /* 2. TINY Orange Button (-) Pinned to Corner */
-    div[data-testid="stButton"]:nth-of-type(2) button {
+    /* ORANGE MINUS (-) - Targeted specifically */
+    div[data-testid="stButton"]:nth-of-type(2) > button {
         position: fixed !important;
-        bottom: 30px !important;
-        right: 25px !important;
-        width: 65px !important; /* Shrunk for better navigation */
-        height: 65px !important;
-        background-color: #ff8a50;
+        bottom: 40px !important;
+        right: 30px !important;
+        width: 18vw !important;
+        height: 18vw !important;
+        max-width: 75px !important;
+        max-height: 75px !important;
+        background-color: #ff8a50 !important; /* The Orange Color */
+        color: white !important;
         border-radius: 50% !important;
         border: none !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.5) !important;
-        z-index: 9999;
-    }
-    div[data-testid="stButton"]:nth-of-type(2) button p {
-        font-size: 50px !important;
-        font-weight: 100 !important;
-        color: white !important;
+        z-index: 9999 !important;
     }
 
-    /* Active Haptic Feedback */
-    button:active { transform: scale(0.9) !important; }
+    /* GREEN PLUS (+) - Large & Central */
+    div[data-testid="stButton"]:nth-of-type(1) > button {
+        width: 80vw !important;
+        height: 80vw !important;
+        max-width: 340px !important;
+        max-height: 340px !important;
+        background-color: #2da94f !important;
+        border-radius: 50% !important;
+        border: none !important;
+        margin: 30px auto !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+
+    /* Icon Sizing inside buttons */
+    div[data-testid="stButton"]:nth-of-type(1) p { font-size: 40vw !important; color: white !important; }
+    div[data-testid="stButton"]:nth-of-type(2) p { font-size: 10vw !important; color: white !important; }
+
+    button:active { transform: scale(0.92) !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 5. APP UI ---
+# --- 5. APP LOGIC ---
 st.title("Judge Clicker")
 
 selected_wod = st.selectbox("Select WOD:", wod_list)
@@ -128,7 +117,6 @@ if a_id != "0":
     current_data = ref.get()
     reps = current_data.get('reps', 0) if current_data else 0
 
-    # Large Score Counter
     st.markdown(f"""
         <div class="score-ui">
             <div class="score-box">{reps}</div>
@@ -136,12 +124,12 @@ if a_id != "0":
         </div>
     """, unsafe_allow_html=True)
 
-    # Big Green Plus Button
+    # First button: Plus (+)
     if st.button("+", key="p"):
         ref.update({'reps': reps + 1, 'name': a_name})
         st.rerun()
 
-    # Small Orange Minus Button
+    # Second button: Minus (-)
     if st.button("-", key="m"):
         if reps > 0:
             ref.update({'reps': reps - 1})
