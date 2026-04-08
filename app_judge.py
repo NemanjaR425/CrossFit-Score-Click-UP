@@ -5,7 +5,7 @@ import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
 # --- 1. CONFIG ---
-st.set_page_config(page_title="Judge Clicker", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Sudija", layout="centered", initial_sidebar_state="collapsed")
 st_autorefresh(interval=3000, key="datarefresh") 
 
 # --- 2. FIREBASE CONNECTION ---
