@@ -71,7 +71,7 @@ st.markdown("""
         height: 88vw !important;
         max-width: 350px !important;
         max-height: 350px !important;
-        background-color: #2da94f !important;
+        background-color: #2da94f;
         border-radius: 50% !important;
         border: none !important;
         margin: 35px auto !important;
