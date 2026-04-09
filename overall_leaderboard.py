@@ -3,11 +3,11 @@ import firebase_admin
 from firebase_admin import credentials, db
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. CONFIG & REFRESH ---
-st.set_page_config(page_title="Overall Leaderboard", layout="centered")
+# --- 1. KONFIGURACIJA I OSVJEŽAVANJE ---
+st.set_page_config(page_title="Ukupna Rang Lista", layout="centered")
 st_autorefresh(interval=5000, key="overall_refresh")
 
-# --- 2. FIREBASE CONNECTION ---
+# --- 2. FIREBASE KONEKCIJA ---
 if not firebase_admin._apps:
     fb_secrets = st.secrets["firebase"]
     fixed_key = fb_secrets["private_key"].replace("\\n", "\n")
@@ -21,13 +21,13 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. STYLING ---
+# --- 3. STILIZACIJA (CSS) ---
 st.markdown("""
     <style>
     .stApp { background-color: #0b0e14; }
     .block-container { padding-top: 1rem !important; max-width: 500px !important; }
     
-    /* Center the logo container */
+    /* Centriranje logotipa */
     [data-testid="stImage"] {
         display: flex;
         justify-content: center;
@@ -58,23 +58,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. TOP LOGO SECTION ---
-# Change LOGO_SIZE to adjust the width in pixels
-LOGO_SIZE = 150
+# --- 4. LOGOTIP I NASLOV ---
+LOGO_SIZE = 150 
 
 try:
-    # We use 'width' instead of 'use_container_width' to control scaling
     st.image("logo.png", width=LOGO_SIZE) 
 except:
-    st.title("🏆 GENERAL STANDINGS")
+    st.title("🏆 GENERALNI PLASMAN")
 
-# --- 5. DATA AGGREGATION ---
+# --- 5. AGREGACIJA PODATAKA ---
 ref = db.reference('competitions')
 all_data = ref.get()
 
 if all_data:
     totals = {}
     for wod_key, athletes in all_data.items():
+        # Skraćivanje imena za prikaz (npr. WOD_1 -> W1)
         display_wod = wod_key.replace("WOD_", "W") 
         athlete_items = athletes.items() if isinstance(athletes, dict) else enumerate(athletes)
         
@@ -90,10 +89,12 @@ if all_data:
                 totals[a_id_str]["total"] += reps
                 totals[a_id_str]["breakdown"][display_wod] = reps
 
+    # Sortiranje po ukupnom broju ponavljanja
     sorted_overall = sorted(totals.values(), key=lambda x: x['total'], reverse=True)
 
-    # --- 6. RENDER ---
+    # --- 6. PRIKAZ REZULTATA ---
     for i, entry in enumerate(sorted_overall):
+        # Kreiranje niza pojedinačnih rezultata: "W1:20 • W2:15..."
         b_list = [f"{k}:{v}" for k, v in sorted(entry['breakdown'].items())]
         breakdown_str = " • ".join(b_list)
 
@@ -108,9 +109,9 @@ if all_data:
                 </div>
                 <div class="score-container">
                     <span class="total-score">{entry['total']}</span>
-                    <span class="score-label">Total Reps</span>
+                    <span class="score-label">Ukupno Pon.</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 else:
-    st.info("Syncing competition data...")
+    st.info("Sinhronizacija podataka u toku...")
