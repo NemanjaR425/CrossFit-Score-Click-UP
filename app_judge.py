@@ -22,99 +22,92 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. CSS (Agresivno targetiranje veličine) ---
-st.markdown("""
+# --- 3. MOĆNI CSS (Ovdje mijenjaš dimenzije) ---
+st.markdown(f"""
     <style>
-    .stApp { background-color: #0b0e14; }
+    .stApp {{ background-color: #0b0e14; }}
     
-    /* Centriranje glavnog prikaza */
-    .score-ui { text-align: center; margin: 20px 0; }
-    .score-val { font-size: 120px; font-weight: 900; color: white; line-height: 1; }
-    .score-lbl { font-size: 20px; color: #666; letter-spacing: 5px; margin-top: 10px; }
+    /* Prikaz rezultata */
+    .score-container {{ text-align: center; margin-bottom: 20px; }}
+    .score-val {{ font-size: 100px; font-weight: 900; color: white; line-height: 1; }}
+    .score-lbl {{ font-size: 18px; color: #888; letter-spacing: 4px; text-transform: uppercase; }}
 
-    /* --- PLUS DUGME (Zeleni krug) --- */
-    #plus-box button {
-        min-width: 300px !important;  /* OVDJE MIJENJAJ VELIČINU PLUS GUMBA */
-        min-height: 300px !important;
-        max-width: 300px !important;
-        max-height: 300px !important;
+    /* --- STIL ZA VELIKI PLUS GUMB --- */
+    /* Targetiramo kontejner, pa div, pa button sa !important na SVAKOM nivou */
+    div.plus-wrap div[data-testid="stButton"] button {{
+        width: 300px !important;   /* PROMIJENI SAMO OVDJE ZA PLUS */
+        height: 300px !important;
         background-color: #2da94f !important;
         border-radius: 50% !important;
         border: none !important;
-        margin: 20px auto !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        box-shadow: 0 10px 30px rgba(45, 169, 79, 0.4) !important;
-    }
-    #plus-box p { font-size: 140px !important; color: white !important; font-weight: bold !important; }
+        margin: 0 auto !important;
+        box-shadow: 0 10px 40px rgba(45, 169, 79, 0.4) !important;
+    }}
+    div.plus-wrap p {{ font-size: 140px !important; color: white !important; font-weight: bold !important; }}
 
-    /* --- MINUS DUGME (Narandžasti krug) --- */
-    #minus-box button {
+    /* --- STIL ZA MANJI MINUS GUMB (Korekcija) --- */
+    div.minus-wrap div[data-testid="stButton"] button {{
         position: fixed !important;
-        bottom: 40px !important;
+        bottom: 30px !important;
         right: 30px !important;
-        min-width: 80px !important;   /* OVDJE MIJENJAJ VELIČINU MINUS GUMBA */
-        min-height: 80px !important;
+        width: 70px !important;    /* PROMIJENI SAMO OVDJE ZA MINUS */
+        height: 70px !important;
         background-color: #ff8a50 !important;
         border-radius: 50% !important;
         border: none !important;
         z-index: 9999 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-    #minus-box p { font-size: 40px !important; color: white !important; }
+    }}
+    div.minus-wrap p {{ font-size: 35px !important; color: white !important; }}
 
-    /* Resetuj Streamlit-ove defaultne stilove koji smetaju krugu */
-    div.stButton { display: flex; justify-content: center; }
-    button:active { transform: scale(0.95) !important; }
-    [data-testid="stHeader"] { visibility: hidden; }
+    /* Uklanjanje viška prostora koji Streamlit dodaje */
+    [data-testid="stVerticalBlock"] {{ gap: 0rem !important; }}
+    button:active {{ transform: scale(0.95) !important; }}
     </style>
 """, unsafe_allow_html=True)
 
 # --- 4. LOGIKA ---
 st.title("⚖️ Sudijski Kliker")
 
-# Učitavanje atleta (Skraćeno za ovaj primjer)
+# (Ovdje ide tvoj dio koda za get_athletes() i ostalo)
 wod_list = ["WOD 1", "WOD 2", "WOD 3"]
-athlete_list = ["1-Marija Ristić", "2-Zeljka Cepic", "3-Anja Ristić"]
+athlete_list = ["1-Marija Ristić", "2-Zeljka Cepic", "3-Nemanja Ristić"]
 
-col1, col2 = st.columns(2)
-with col1:
-    selected_wod = st.selectbox("WOD:", wod_list)
-with col2:
-    selected_athlete = st.selectbox("Takmičar:", athlete_list)
+selected_wod = st.selectbox("Odaberite WOD:", wod_list)
+selected_athlete = st.selectbox("Odaberite takmičara:", athlete_list)
 
 a_id = selected_athlete.split("-")[0]
 a_name = selected_athlete.split("-")[1]
 
-# Firebase konekcija
+# Dohvatanje podataka
 db_path = f'competitions/{selected_wod.replace(" ", "_")}/{a_id}'
 ref = db.reference(db_path)
 data = ref.get()
 reps = data.get('reps', 0) if data else 0
 
-# Prikaz rezultata
+# Prikaz broja ponavljanja (Prevedeno)
 st.markdown(f"""
-    <div class="score-ui">
+    <div class="score-container">
         <div class="score-val">{reps}</div>
-        <div class="score-lbl">PONAVLJANJA</div>
+        <div class="score-lbl">Ponavljanja</div>
     </div>
 """, unsafe_allow_html=True)
 
+# --- DUGMAD SA POSEBNIM WRAPPERIMA ---
+
 # PLUS GUMB
-st.markdown('<div id="plus-box">', unsafe_allow_html=True)
-if st.button("+", key="p_btn"):
+st.markdown('<div class="plus-wrap">', unsafe_allow_html=True)
+if st.button("+", key="btn_plus"):
     ref.update({'reps': reps + 1, 'name': a_name})
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
 # MINUS GUMB
-st.markdown('<div id="minus-box">', unsafe_allow_html=True)
-if st.button("-", key="m_btn"):
+st.markdown('<div class="minus-wrap">', unsafe_allow_html=True)
+if st.button("-", key="btn_minus"):
     if reps > 0:
         ref.update({'reps': reps - 1})
         st.rerun()
-# Zatvaramo div nakon dugmeta
 st.markdown('</div>', unsafe_allow_html=True)
