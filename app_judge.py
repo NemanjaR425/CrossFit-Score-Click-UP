@@ -56,7 +56,7 @@ st.markdown("""
         font-weight: 900;
         color: white;
     }
-    .reps-text { font-size: 55px; font-weight: 300; color: white; letter-spacing: 2px; }
+    .reps-text { font-size: 55px; font-weight: 500; color: white; letter-spacing: 2px; }
 
     /* --- DUGMAD --- */
     
