@@ -1,11 +1,14 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
+import pandas as pd
+from streamlit_autorefresh import st_autorefresh
 
-# --- 1. KONFIGURACIJA ---
-st.set_page_config(page_title="Sudijski Kliker", layout="centered")
+# --- 1. CONFIG ---
+st.set_page_config(page_title="Judge Clicker", layout="centered", initial_sidebar_state="collapsed")
+st_autorefresh(interval=3000, key="datarefresh") 
 
-# --- 2. FIREBASE KONEKCIJA ---
+# --- 2. FIREBASE CONNECTION ---
 if not firebase_admin._apps:
     fb_secrets = st.secrets["firebase"]
     fixed_key = fb_secrets["private_key"].replace("\\n", "\n")
@@ -19,98 +22,123 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. CSS ZA KRUŽNU DUGMAD ---
+# --- 3. DATA FETCHING ---
+@st.cache_data(ttl=60)
+def get_athletes():
+    try:
+        sheet_id = "1z1ga9p39C0KJDSOK6ZzU0OUSgKM1UbSh9BiMPMSQ1PY"
+        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Athletes"
+        df = pd.read_csv(url).dropna(subset=['Athlete_ID', 'Name'])
+        return [f"{int(row['Athlete_ID'])}-{row['Name']}" for _, row in df.iterrows()]
+    except: return ["1-Loading..."]
+
+athlete_list = get_athletes()
+wod_list = ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"]
+
+# --- 4. THE UI (Robust CSS targeting) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0b0e14; }
+    .stApp { background-color: #0b0e14; overflow-x: hidden; }
+    .block-container { max-width: 450px !important; padding-top: 1rem !important; margin: auto; }
     
-    /* Centriranje svih dugmadi */
-    div.stButton {
+    /* Rep Counter Display */
+    .score-ui { display: flex; align-items: center; gap: 15px; margin: 15px 0; }
+    .score-box {
+        background: #1a1e26;
+        border: 2px solid #333;
+        border-radius: 18px;
+        width: 120px;
+        height: 100px;
         display: flex;
         justify-content: center;
-        margin: 20px 0;
-    }
-
-    /* PLUS KRUG */
-    div.stButton > button[key="plus_btn"] {
-        width: 250px !important;
-        height: 250px !important;
-        border-radius: 50% !important; /* Pravi savršen krug */
-        background-color: #2da94f !important;
-        color: white !important;
-        font-size: 150px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border: none !important;
-        box-shadow: 0 10px 30px rgba(45, 169, 79, 0.3) !important;
-        line-height: 0 !important;
-        padding-bottom: 25px !important; /* Fino podešavanje simbola u krugu */
-    }
-
-    /* MINUS KRUG */
-    div.stButton > button[key="minus_btn"] {
-        width: 120px !important;
-        height: 120px !important;
-        border-radius: 50% !important;
-        background-color: #1a1e26 !important;
-        color: #ff4b4b !important;
-        font-size: 60px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border: 1px solid #333 !important;
-        line-height: 0 !important;
-        padding-bottom: 15px !important;
-    }
-
-    /* Prikaz rezultata */
-    .score-display {
-        font-size: 140px;
+        align-items: center;
+        font-size: 65px !important;
         font-weight: 900;
         color: white;
-        text-align: center;
-        margin-bottom: -10px;
-        line-height: 1;
     }
+    .reps-text { font-size: 65px; font-weight: 300; color: white; }
+
+    /* --- THE BUTTONS --- */
     
-    .score-label {
-        font-size: 18px;
-        color: #666;
-        text-align: center;
-        margin-bottom: 30px;
-        letter-spacing: 4px;
+    /* 1. GREEN PLUS (+) */
+    div[data-testid="stButton"]:nth-of-type(1) > button {
+        width: 75vw !important;
+        height: 75vw !important;
+        max-width: 320px !important;
+        max-height: 320px !important;
+        background-color: #2da94f !important;
+        border-radius: 50% !important;
+        border: none !important;
+        margin: 20px auto !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-shadow: 0 10px 30px rgba(45, 169, 79, 0.3) !important;
+    }
+    div[data-testid="stButton"]:nth-of-type(1) p {
+        font-size: 150px !important; /* Fixed large size */
+        color: white !important;
+        margin: 0 !important;
+        line-height: 1 !important;
     }
 
-    [data-testid="stHeader"] {display: none;}
-    label { color: #888 !important; }
+    /* 2. ORANGE MINUS (-) - Safety Correction */
+    div[data-testid="stButton"]:nth-of-type(2) > button {
+        position: fixed !important;
+        bottom: 30px !important;
+        right: 25px !important;
+        width: 70px !important; /* Fixed pixel size for safety */
+        height: 70px !important;
+        background-color: #ff8a50 !important; /* Forced Orange */
+        color: white !important;
+        border-radius: 50% !important;
+        border: none !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        z-index: 9999 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+    }
+    div[data-testid="stButton"]:nth-of-type(2) p {
+        font-size: 45px !important; /* Smaller icon for minus */
+        color: white !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+    }
+
+    button:active { transform: scale(0.92) !important; }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# --- 4. INTERFEJS ---
-st.title("⚖️ Sudijski Kliker")
+# --- 5. APP LOGIC ---
+st.title("Judge Clicker")
 
-selected_wod = st.selectbox("WOD:", ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"])
-db_path = f'competitions/{selected_wod.replace(" ", "_")}'
+selected_wod = st.selectbox("Select WOD:", wod_list)
+selected_athlete = st.selectbox("Select Athlete:", athlete_list)
 
-athletes = ["1-Marija Ristić", "2-Zeljka Cepic", "3-Anja Ristić", "4-Nemanja Ristić", "5-Srdjan Pavicevic"]
-target_athlete = st.selectbox("Takmičar:", athletes)
+a_id = selected_athlete.split("-")[0] if "-" in selected_athlete else "0"
+a_name = selected_athlete.split("-")[1] if "-" in selected_athlete else "None"
 
-# Firebase podaci
-athlete_id = target_athlete.split("-")[0]
-athlete_name = target_athlete.split("-")[1]
-ref = db.reference(f'{db_path}/{athlete_id}')
+if a_id != "0":
+    db_path = f'competitions/{selected_wod.replace(" ", "_")}/{a_id}'
+    ref = db.reference(db_path)
+    current_data = ref.get()
+    reps = current_data.get('reps', 0) if current_data else 0
 
-current_data = ref.get()
-reps = current_data.get("reps", 0) if current_data else 0
+    st.markdown(f"""
+        <div class="score-ui">
+            <div class="score-box">{reps}</div>
+            <div class="reps-text">REPS</div>
+        </div>
+    """, unsafe_allow_html=True)
 
-# Rezultat
-st.markdown(f'<div class="score-display">{reps}</div>', unsafe_allow_html=True)
-st.markdown('<div class="score-label">PONAVLJANJA</div>', unsafe_allow_html=True)
+    # Main clicker
+    if st.button("+", key="p"):
+        ref.update({'reps': reps + 1, 'name': a_name})
+        st.rerun()
 
-# Dugmad
-st.button("＋", key="plus_btn", on_click=lambda: ref.update({"name": athlete_name, "reps": reps + 1}))
-st.button("－", key="minus_btn", on_click=lambda: ref.update({"name": athlete_name, "reps": max(0, reps - 1)}))
-
-st.divider()
-st.caption(f"Sudite takmičaru: {athlete_name}")
+    # Smaller safety correction
+    if st.button("-", key="m"):
+        if reps > 0:
+            ref.update({'reps': reps - 1})
+            st.rerun()
