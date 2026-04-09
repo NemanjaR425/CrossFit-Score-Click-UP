@@ -128,7 +128,7 @@ if a_id != "0":
     st.markdown(f"""
         <div class="score-ui">
             <div class="score-box">{reps}</div>
-            <div class="reps-text">PON.</div>
+            <div class="reps-text">REPS</div>
         </div>
     """, unsafe_allow_html=True)
 
