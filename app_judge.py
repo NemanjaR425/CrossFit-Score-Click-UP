@@ -19,54 +19,56 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. STILIZACIJA (Univerzalni CSS za veliku dugmad) ---
+# --- 3. STILIZACIJA (Agresivni CSS za veličinu) ---
 st.markdown("""
     <style>
     .stApp { background-color: #0b0e14; }
     
-    /* Globalno pravilo za svu dugmad u aplikaciji */
+    /* Force buttons to be massive */
     div.stButton > button {
         width: 100% !important;
+        border-radius: 20px !important;
+        font-family: sans-serif !important;
+        text-transform: uppercase !important;
+    }
+
+    /* PLUS dugme */
+    div.stButton > button[key="plus_btn"] {
+        height: 200px !important;
         background-color: #2da94f !important;
         color: white !important;
-        border-radius: 15px !important;
-        border: none !important;
-        display: block !important;
+        font-size: 100px !important;
+        border: 2px solid #3ebf63 !important;
     }
 
-    /* Specifično za PLUS dugme (veće) */
-    div.stButton > button[p-typed-key="plus_btn"] {
-        height: 150px !important;
-        font-size: 80px !important;
-        margin-bottom: 20px !important;
-    }
-
-    /* Specifično za MINUS dugme (manje) */
-    div.stButton > button[p-typed-key="minus_btn"] {
-        height: 80px !important;
-        font-size: 40px !important;
-        opacity: 0.7 !important;
+    /* MINUS dugme */
+    div.stButton > button[key="minus_btn"] {
+        height: 100px !important;
+        background-color: #1a1e26 !important;
+        color: #ff4b4b !important;
+        font-size: 50px !important;
+        border: 1px solid #333 !important;
+        margin-top: 20px !important;
     }
 
     .score-display {
-        font-size: 100px;
+        font-size: 120px;
         font-weight: 900;
         color: white;
         text-align: center;
-        margin: 10px 0;
-        line-height: 1;
+        margin-top: -20px;
     }
     
     .score-label {
-        font-size: 24px;
+        font-size: 20px;
         color: #666;
         text-align: center;
-        margin-bottom: 30px;
-        text-transform: uppercase;
+        margin-bottom: 40px;
+        letter-spacing: 2px;
     }
-    
-    label { color: #aaa !important; }
-    h1 { color: white !important; text-align: center; margin-bottom: 30px !important; }
+
+    h1 { color: white !important; text-align: center; }
+    label { color: #888 !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -86,21 +88,14 @@ ref = db.reference(f'{db_path}/{athlete_id}')
 current_data = ref.get()
 reps = current_data.get("reps", 0) if current_data else 0
 
-# Prikaz rezultata
+# Prikaz broja ponavljanja
 st.markdown(f'<div class="score-display">{reps}</div>', unsafe_allow_html=True)
-st.markdown('<div class="score-label">Ponavljanja</div>', unsafe_allow_html=True)
+st.markdown('<div class="score-label">PONAVLJANJA</div>', unsafe_allow_html=True)
 
-# Dugmad sa fiksnim ključevima za CSS
-if st.button("＋", key="plus_btn"):
-    reps += 1
-    ref.update({"name": athlete_name, "reps": reps})
-    st.rerun()
+# Dugmad sa eksplicitnim CSS selektorima
+st.button("＋", key="plus_btn", on_click=lambda: ref.update({"name": athlete_name, "reps": reps + 1}))
 
-if st.button("－", key="minus_btn"):
-    if reps > 0:
-        reps -= 1
-        ref.update({"name": athlete_name, "reps": reps})
-        st.rerun()
+st.button("－", key="minus_btn", on_click=lambda: ref.update({"name": athlete_name, "reps": max(0, reps - 1)}))
 
 st.divider()
-st.caption(f"Bilježenje za: {athlete_name}")
+st.caption(f"Sudite takmičaru: {athlete_name}")
