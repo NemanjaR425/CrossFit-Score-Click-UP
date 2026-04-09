@@ -19,76 +19,84 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. AGRESIVNI CSS (Targetiranje preko ID-a i klasa) ---
+# --- 3. CSS ZA KRUŽNU DUGMAD ---
 st.markdown("""
     <style>
     .stApp { background-color: #0b0e14; }
     
-    /* Targetiramo direktno dugmad unutar Streamlit-ovog osnovnog kontejnera */
-    div[data-testid="stBaseButton-secondary"], 
-    div[data-testid="stBaseButton-primary"],
-    button {
-        width: 100% !important;
-        border-radius: 25px !important;
+    /* Centriranje svih dugmadi */
+    div.stButton {
+        display: flex;
+        justify-content: center;
+        margin: 20px 0;
+    }
+
+    /* PLUS KRUG */
+    div.stButton > button[key="plus_btn"] {
+        width: 250px !important;
+        height: 250px !important;
+        border-radius: 50% !important; /* Pravi savršen krug */
+        background-color: #2da94f !important;
+        color: white !important;
+        font-size: 150px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-    }
-
-    /* PLUS DUGME: Zauzima 30% visine ekrana */
-    #plus_container button {
-        height: 35vh !important; 
-        background-color: #2da94f !important;
-        color: white !important;
-        font-size: 150px !important; /* Ekstremno veliki znak */
         border: none !important;
-        box-shadow: 0 15px 30px rgba(45, 169, 79, 0.4) !important;
+        box-shadow: 0 10px 30px rgba(45, 169, 79, 0.3) !important;
+        line-height: 0 !important;
+        padding-bottom: 25px !important; /* Fino podešavanje simbola u krugu */
     }
 
-    /* MINUS DUGME: Manje, ali i dalje lako za pogoditi */
-    #minus_container button {
-        height: 12vh !important;
+    /* MINUS KRUG */
+    div.stButton > button[key="minus_btn"] {
+        width: 120px !important;
+        height: 120px !important;
+        border-radius: 50% !important;
         background-color: #1a1e26 !important;
         color: #ff4b4b !important;
         font-size: 60px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         border: 1px solid #333 !important;
-        margin-top: 30px !important;
+        line-height: 0 !important;
+        padding-bottom: 15px !important;
     }
 
+    /* Prikaz rezultata */
     .score-display {
         font-size: 140px;
         font-weight: 900;
         color: white;
         text-align: center;
-        margin: 0px;
+        margin-bottom: -10px;
         line-height: 1;
     }
     
     .score-label {
-        font-size: 20px;
+        font-size: 18px;
         color: #666;
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 30px;
         letter-spacing: 4px;
     }
 
-    /* Uklanjanje viška prostora */
-    .block-container { padding-top: 1rem !important; }
     [data-testid="stHeader"] {display: none;}
+    label { color: #888 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. INTERFEJS I LOGIKA ---
+# --- 4. INTERFEJS ---
 st.title("⚖️ Sudijski Kliker")
 
-# Odabir WOD-a i Takmičara
 selected_wod = st.selectbox("WOD:", ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"])
 db_path = f'competitions/{selected_wod.replace(" ", "_")}'
 
 athletes = ["1-Marija Ristić", "2-Zeljka Cepic", "3-Anja Ristić", "4-Nemanja Ristić", "5-Srdjan Pavicevic"]
 target_athlete = st.selectbox("Takmičar:", athletes)
 
-# Firebase referenca
+# Firebase podaci
 athlete_id = target_athlete.split("-")[0]
 athlete_name = target_athlete.split("-")[1]
 ref = db.reference(f'{db_path}/{athlete_id}')
@@ -96,25 +104,13 @@ ref = db.reference(f'{db_path}/{athlete_id}')
 current_data = ref.get()
 reps = current_data.get("reps", 0) if current_data else 0
 
-# Veliki broj ponavljanja
+# Rezultat
 st.markdown(f'<div class="score-display">{reps}</div>', unsafe_allow_html=True)
 st.markdown('<div class="score-label">PONAVLJANJA</div>', unsafe_allow_html=True)
 
-# --- KLJUČNI DIO: DUGMAD U KONTEJNERIMA ---
-# Koristimo HTML div-ove sa ID-em kako bi CSS precizno znao šta da poveća
-
-st.markdown('<div id="plus_container">', unsafe_allow_html=True)
-if st.button("＋", key="p", use_container_width=True):
-    ref.update({"name": athlete_name, "reps": reps + 1})
-    st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown('<div id="minus_container">', unsafe_allow_html=True)
-if st.button("－", key="m", use_container_width=True):
-    if reps > 0:
-        ref.update({"name": athlete_name, "reps": reps - 1})
-        st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
+# Dugmad
+st.button("＋", key="plus_btn", on_click=lambda: ref.update({"name": athlete_name, "reps": reps + 1}))
+st.button("－", key="minus_btn", on_click=lambda: ref.update({"name": athlete_name, "reps": max(0, reps - 1)}))
 
 st.divider()
-st.caption(f"Sudite: {athlete_name}")
+st.caption(f"Sudite takmičaru: {athlete_name}")
