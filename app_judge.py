@@ -35,7 +35,7 @@ def get_athletes():
 athlete_list = get_athletes()
 wod_list = ["WOD 1", "WOD 2", "WOD 3", "WOD 4", "WOD 5", "WOD 6"]
 
-# --- 4. CSS (Ovdje mijenjaš dimenzije) ---
+# --- 4. ROBUSNI CSS (Ovdje mijenjate dimenzije) ---
 st.markdown("""
     <style>
     .stApp { background-color: #0b0e14; overflow-x: hidden; }
@@ -59,11 +59,11 @@ st.markdown("""
     .reps-text { font-size: 55px; font-weight: 300; color: white; }
 
     /* --- PLUS GUMB (Zeleni krug) --- */
-    .plus-container button {
-        width: 320px !important;  /* PROMIJENI VELIČINU PLUS GUMBA OVDJE */
+    #plus_wrap button {
+        width: 320px !important;  /* PROMIJENI SAMO OVDJE ZA PLUS */
         height: 320px !important;
         background-color: #2da94f !important;
-        border-radius: 50% !important;
+        border-radius: 50% !important; /* Mora biti 50% za krug */
         border: none !important;
         margin: 20px auto !important;
         display: flex !important;
@@ -71,35 +71,36 @@ st.markdown("""
         align-items: center !important;
         box-shadow: 0 10px 30px rgba(45, 169, 79, 0.3) !important;
     }
-    .plus-container p {
+    #plus_wrap p {
         font-size: 150px !important;
         color: white !important;
         line-height: 1 !important;
     }
 
-    /* --- MINUS GUMB (Narandžasta korekcija) --- */
-    .minus-container button {
+    /* --- MINUS GUMB (Mali narandžasti krug) --- */
+    #minus_wrap button {
         position: fixed !important;
         bottom: 30px !important;
         right: 25px !important;
-        width: 80px !important;  /* PROMIJENI VELIČINU MINUS GUMBA OVDJE */
+        width: 80px !important;   /* PROMIJENI SAMO OVDJE ZA MINUS */
         height: 80px !important;
         background-color: #ff8a50 !important;
         border-radius: 50% !important;
         border: none !important;
         z-index: 9999 !important;
     }
-    .minus-container p {
+    #minus_wrap p {
         font-size: 45px !important;
         color: white !important;
     }
 
     button:active { transform: scale(0.92) !important; }
+    [data-testid="stHeader"] { display: none; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- 5. LOGIKA APLIKACIJE ---
-st.title("Sudijski Kliker")
+st.title("⚖️ Sudijski Kliker")
 
 selected_wod = st.selectbox("Odaberite WOD:", wod_list)
 selected_athlete = st.selectbox("Odaberite takmičara:", athlete_list)
@@ -120,15 +121,15 @@ if a_id != "0":
         </div>
     """, unsafe_allow_html=True)
 
-    # UMOTAVANJE PLUS GUMBA
-    st.markdown('<div class="plus-container">', unsafe_allow_html=True)
+    # PLUS DUGME SA UNIKATNIM ID-EM
+    st.markdown('<div id="plus_wrap">', unsafe_allow_html=True)
     if st.button("+", key="p"):
         ref.update({'reps': reps + 1, 'name': a_name})
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # UMOTAVANJE MINUS GUMBA
-    st.markdown('<div class="minus-container">', unsafe_allow_html=True)
+    # MINUS DUGME SA UNIKATNIM ID-EM
+    st.markdown('<div id="minus_wrap">', unsafe_allow_html=True)
     if st.button("-", key="m"):
         if reps > 0:
             ref.update({'reps': reps - 1})
