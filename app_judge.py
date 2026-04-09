@@ -62,8 +62,8 @@ st.markdown("""
     
     /* 1. ZELENI PLUS (+) */
     div[data-testid="stButton"]:nth-of-type(1) > button {
-        width: 75vw !important;
-        height: 75vw !important;
+        width: 35vw !important;
+        height: 35vw !important;
         max-width: 320px !important;
         max-height: 320px !important;
         background-color: #2da94f !important;
