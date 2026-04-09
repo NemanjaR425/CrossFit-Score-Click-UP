@@ -47,7 +47,7 @@ st.markdown("""
     /* STIL ZA PLUS GUMB (p) */
     div.stButton > button[key="p"] {
         width: 600px !important; /* Promijeni samo ovdje za PLUS */
-        height: 600px !important;
+        height: 300px !important;
         background-color: #2da94f !important;
         border-radius: 50% !important;
         border: none !important;
