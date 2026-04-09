@@ -86,10 +86,6 @@ st.markdown("""
         z-index: 9999 !important;
     }
 
-    button:active { transform: scale(0.92) !important; }
-    </style>
-    """, unsafe_allow_html=True)
-
 # --- 5. LOGIKA APLIKACIJE ---
 st.title("Sudijski Kliker")
 
