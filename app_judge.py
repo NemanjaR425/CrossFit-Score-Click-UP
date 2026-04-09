@@ -82,22 +82,16 @@ st.markdown("""
         line-height: 1 !important;
     }
 
-    /* 2. NARANDŽASTI MINUS (-) - Korekcija */
-    div[data-testid="stButton"]:nth-of-type(2) > button {
+ /* 2. NARANDŽASTI MINUS (-) - Ciljamo ga preko fiksne pozicije */
+    div[data-testid="stVerticalBlock"] > div:nth-child(6) button {
         position: fixed !important;
         bottom: 30px !important;
         right: 25px !important;
-        width: 70px !important;
+        width: 70px !important;   /* MINUS OSTAJE MALI */
         height: 70px !important;
         background-color: #ff8a50 !important;
-        color: white !important;
         border-radius: 50% !important;
-        border: none !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
         z-index: 9999 !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
     }
     div[data-testid="stButton"]:nth-of-type(2) p {
         font-size: 45px !important;
