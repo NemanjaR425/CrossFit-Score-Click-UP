@@ -53,6 +53,24 @@ st.markdown("""
     .score-container { text-align: right; }
     .total-score { color: #ffffff; font-size: 22px; font-weight: 800; display: block; line-height: 1; }
     .score-label { color: #444; font-size: 9px; text-transform: uppercase; font-weight: bold; }
+    st.markdown("""
+    /* Postavlja pozadinu na 'Chroma' zelenu za lakše uklanjanje u vMix-u */
+    .stApp {
+        background-color: #00FF00; 
+    }
+    
+    /* Sakriva Streamlit header, footer i meni */
+    [data-testid="stHeader"], footer, #MainMenu {
+        visibility: hidden;
+    }
+
+    /* Prilagođava tabelu da bude čitljiva na TV-u */
+    .stTable {
+        background-color: rgba(0, 0, 0, 0.8) !important; /* Crna sa 80% providnosti */
+        color: white !important;
+        font-size: 24px !important;
+        border-radius: 15px;
+    }
 
     h1 { color: white !important; font-size: 26px !important; text-align: center; margin-top: 0px !important; }
     </style>
