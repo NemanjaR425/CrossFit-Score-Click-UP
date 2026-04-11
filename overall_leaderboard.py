@@ -54,7 +54,7 @@ st.markdown("""
     /* OVDJE KONTROLIŠEŠ ŠIRINU KOLONA (50px pozicija, 1fr ime, 70px poeni) */
     .header-grid, .row-grid {
         display: grid;
-        grid-template-columns: 35px 1fr 80px; /* Sužene kolone za brojeve */
+        grid-template-columns: 35px 0.5fr 80px; /* Sužene kolone za brojeve */
         gap: 2px;
         margin-bottom: 2px;
     }
