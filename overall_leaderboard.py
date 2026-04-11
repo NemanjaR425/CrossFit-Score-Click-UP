@@ -4,14 +4,14 @@ from firebase_admin import credentials, db
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. KONTROLA ŠIRINE I RAZMAKA ---
+# --- 1. KONTROLA IZGLEDA ---
 TABELA_SIRINA = "360px"    
 SIRINA_POZICIJA = "45px"   
 SIRINA_POENI = "75px"      
 LEVA_MARGINA = "60px"      
 GORNJA_MARGINA = "50px"    
 
-# --- 2. KONFIGURACIJA STRANICE ---
+# --- 2. KONFIGURACIJA ---
 st.set_page_config(page_title="vMix Clean Overlay", layout="wide")
 st_autorefresh(interval=3000, key="broadcast_refresh")
 
@@ -33,8 +33,8 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 4. CSS ZA TOTALNO UKLANJANJE IKONICA ---
-# Koristimo opšte selektore koji ciljaju sve Streamlit komponente interfejsa
+# --- 4. CSS ZA TOTALNO SKRIVANJE IKONICA ---
+# Koristimo najširi mogući spektar selektora da sakrijemo "Streamlit branding"
 st.markdown(f"""
     <style>
     /* 1. Chroma pozadina */
@@ -42,17 +42,20 @@ st.markdown(f"""
         background-color: #00FF00 !important; 
     }}
     
-    /* 2. SAKRIVANJE SVIH SISTEMSKIH ELEMENATA */
-    /* Sakriva Header, Footer, Meni dugme, Deploy dugme i Toolbar */
+    /* 2. UKLANJANJE SVIH STREAMLIT ELEMENATA (IKONICA) */
     header, footer, #MainMenu, .stDeployButton, [data-testid="stHeader"], 
     [data-testid="stToolbar"], [data-testid="stStatusWidget"], 
-    [data-testid="stDecoration"], .viewerBadge_container__1QSob {{
+    [data-testid="stDecoration"], [data-testid="stSidebar"],
+    .viewerBadge_container__1QSob, .stActionButton, 
+    div[class^="viewerBadge"] {{
         visibility: hidden !important;
         display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
     }}
     
-    /* Dodatno sakrivanje bilo kakvog plutajućeg elementa u uglovima */
-    iframe[title="Streamlit App Support"] {{ display: none !important; }}
+    /* Dodatno čišćenje ivica */
+    .stApp > header {{ display: none !important; }}
     
     /* Postavljanje Safe Area */
     .block-container {{ 
@@ -104,16 +107,18 @@ def get_stream_results():
         if not data: return []
         results = []
         
-        # Ispravna obrada podataka iz Firebase-a
+        # Ispravno mapiranje podataka bez obzira na strukturu
         it = enumerate(data) if isinstance(data, list) else data.items()
         for _, athletes in it:
             if athletes:
                 a_it = enumerate(athletes) if isinstance(athletes, list) else athletes.items()
                 for _, d in a_it:
                     if d and isinstance(d, dict):
-                        # Osiguravamo da su poeni broj (integer)
                         reps = d.get('reps', 0)
-                        results.append({"Ime": d.get('name', 'N/A'), "Poeni": int(reps)})
+                        results.append({
+                            "Ime": d.get('name', 'N/A'), 
+                            "Poeni": int(reps)
+                        })
         
         if not results: return []
         
@@ -127,10 +132,14 @@ def get_stream_results():
 left_col, _ = st.columns([1, 4])
 
 with left_col:
+    # Otvaramo glavni kontejner
     st.markdown('<div class="corner-overlay">', unsafe_allow_html=True)
+    
+    # Logo
     st.markdown('<div class="logo-block">Logo Takmičenja</div>', unsafe_allow_html=True)
     
-    st.markdown("""
+    # Zaglavlje
+    st.markdown(f"""
         <div class="header-grid">
             <div class="header-cell">POZ</div>
             <div class="header-cell">TAKMIČAR</div>
@@ -138,23 +147,27 @@ with left_col:
         </div>
     """, unsafe_allow_html=True)
 
+    # Tabela rezultata
     leaderboard = get_stream_results()
     if leaderboard:
         for i, row in enumerate(leaderboard):
-            # Formiranje redova koristeći sigurne varijable
-            pos = i + 1
-            name = row['Ime']
-            score = row['Poeni']
+            # Sigurno formatiranje HTML-a
+            p = i + 1
+            n = row['Ime']
+            s = row['Poeni']
             
             st.markdown(f"""
                 <div class="row-grid">
-                    <div class="pos-cell">{pos}</div>
-                    <div class="name-cell">{name}</div>
-                    <div class="reps-cell">{score}</div>
+                    <div class="pos-cell">{p}</div>
+                    <div class="name-cell">{n}</div>
+                    <div class="reps-cell">{s}</div>
                 </div>
             """, unsafe_allow_html=True)
     else:
-        st.markdown("<div style='color:white; text-align:center;'>Čekanje na rezultate...</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:white; text-align:center; padding:10px;'>Čekanje podataka...</div>", unsafe_allow_html=True)
 
+    # Sponzori
     st.markdown('<div class="sponsor-block">SPONZORI OVDJE</div>', unsafe_allow_html=True)
+    
+    # Zatvaramo glavni kontejner
     st.markdown('</div>', unsafe_allow_html=True)
