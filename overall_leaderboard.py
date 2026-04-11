@@ -33,25 +33,35 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 4. CSS (Očišćen od grešaka) ---
+# --- 4. CSS ZA TOTALNO UKLANJANJE IKONICA ---
+# Koristimo opšte selektore koji ciljaju sve Streamlit komponente interfejsa
 st.markdown(f"""
     <style>
-    .stApp {{ background-color: #00FF00 !important; }}
+    /* 1. Chroma pozadina */
+    .stApp {{ 
+        background-color: #00FF00 !important; 
+    }}
     
-    /* Sakrivanje apsolutno svega od Streamlit-a */
-    header, footer, .stDeployButton, [data-testid="stHeader"], 
+    /* 2. SAKRIVANJE SVIH SISTEMSKIH ELEMENATA */
+    /* Sakriva Header, Footer, Meni dugme, Deploy dugme i Toolbar */
+    header, footer, #MainMenu, .stDeployButton, [data-testid="stHeader"], 
     [data-testid="stToolbar"], [data-testid="stStatusWidget"], 
-    [data-testid="stDecoration"], #MainMenu {{
+    [data-testid="stDecoration"], .viewerBadge_container__1QSob {{
         visibility: hidden !important;
         display: none !important;
     }}
     
+    /* Dodatno sakrivanje bilo kakvog plutajućeg elementa u uglovima */
+    iframe[title="Streamlit App Support"] {{ display: none !important; }}
+    
+    /* Postavljanje Safe Area */
     .block-container {{ 
         padding-top: {GORNJA_MARGINA} !important;    
         padding-left: {LEVA_MARGINA} !important; 
         margin: 0 !important; 
     }}
 
+    /* Tvoja tabela */
     .corner-overlay {{
         width: {TABELA_SIRINA}; 
         font-family: 'Arial Black', sans-serif;
@@ -94,20 +104,23 @@ def get_stream_results():
         if not data: return []
         results = []
         
-        # Iteracija kroz takmičenja i takmičare
+        # Ispravna obrada podataka iz Firebase-a
         it = enumerate(data) if isinstance(data, list) else data.items()
         for _, athletes in it:
             if athletes:
                 a_it = enumerate(athletes) if isinstance(athletes, list) else athletes.items()
                 for _, d in a_it:
                     if d and isinstance(d, dict):
-                        results.append({"Ime": d.get('name', 'N/A'), "Poeni": int(d.get('reps', 0))})
+                        # Osiguravamo da su poeni broj (integer)
+                        reps = d.get('reps', 0)
+                        results.append({"Ime": d.get('name', 'N/A'), "Poeni": int(reps)})
         
         if not results: return []
-        # Sumiranje poena po imenu takmičara
+        
+        # Grupisanje i sumiranje
         df = pd.DataFrame(results).groupby("Ime")["Poeni"].sum().reset_index()
         return df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10).to_dict('records')
-    except:
+    except Exception:
         return []
 
 # --- 6. RENDER ---
@@ -128,21 +141,20 @@ with left_col:
     leaderboard = get_stream_results()
     if leaderboard:
         for i, row in enumerate(leaderboard):
-            # Formiranje HTML-a bez f-stringa unutar markdowna da se izbjegnu {{ }} greške
+            # Formiranje redova koristeći sigurne varijable
             pos = i + 1
             name = row['Ime']
             score = row['Poeni']
             
-            row_html = f"""
+            st.markdown(f"""
                 <div class="row-grid">
                     <div class="pos-cell">{pos}</div>
                     <div class="name-cell">{name}</div>
                     <div class="reps-cell">{score}</div>
                 </div>
-            """
-            st.markdown(row_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
     else:
-        st.markdown("<div style='color:white; text-align:center;'>Čekanje na podatke...</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:white; text-align:center;'>Čekanje na rezultate...</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="sponsor-block">SPONZORI OVDJE</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
