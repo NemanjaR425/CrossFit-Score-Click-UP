@@ -36,7 +36,7 @@ st.markdown("""
 
     /* OVDJE KONTROLIŠEŠ UKUPNU ŠIRINU TABELE */
     .corner-overlay {
-        width: 300px; /* Smanjeno sa 420px na 360px */
+        width: 360px; /* Smanjeno sa 420px na 360px */
         font-family: 'Arial Black', sans-serif;
     }
 
@@ -54,7 +54,7 @@ st.markdown("""
     /* OVDJE KONTROLIŠEŠ ŠIRINU KOLONA (50px pozicija, 1fr ime, 70px poeni) */
     .header-grid, .row-grid {
         display: grid;
-        grid-template-columns: 45px 1fr 70px; /* Sužene kolone za brojeve */
+        grid-template-columns: 45px 1fr 80px; /* Sužene kolone za brojeve */
         gap: 2px;
         margin-bottom: 2px;
     }
