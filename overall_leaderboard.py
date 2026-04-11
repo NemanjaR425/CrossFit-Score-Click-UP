@@ -38,7 +38,7 @@ st.markdown("""
 
     /* Kontejner za tabelu - FIKSNA ŠIRINA */
     .corner-overlay {
-        width: 320px; 
+        width: 220px; 
         font-family: 'Arial Black', sans-serif;
     }
 
