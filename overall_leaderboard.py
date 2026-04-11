@@ -2,13 +2,9 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
 import pandas as pd
-from streamlit_autorefresh import st_autorefresh
+import os
 
-# --- 1. OSNOVNA PODEŠAVANJA ---
-st.set_page_config(page_title="vMix Overlay", layout="wide")
-st_autorefresh(interval=3000, key="vmix_refresh")
-
-# --- 2. FIREBASE (Standardno) ---
+# --- 1. FIREBASE KONEKCIJA ---
 if not firebase_admin._apps:
     fb_secrets = st.secrets["firebase"]
     fixed_key = fb_secrets["private_key"].replace("\\n", "\n")
@@ -22,57 +18,42 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. SPECIJALNI CSS ZA VMIX (Transparentnost umjesto Chrome Key-a) ---
-st.markdown("""
-    <style>
-    /* Ključno: Postavljamo jarko zelenu koja je 'standard' za vMix */
-    .stApp {
-        background-color: #00FF00 !important;
-    }
+# --- 2. FUNKCIJA ZA GENERISANJE HTML-a ---
+def generate_vmix_html(df):
+    rows_html = ""
+    for i, row in df.iterrows():
+        rows_html += f"""
+        <div style="display: flex; gap: 10px; margin-bottom: 8px; font-family: Arial; font-weight: bold;">
+            <div style="width: 50px; background: white; color: black; border-radius: 8px; text-align: center; padding: 10px;">{i+1}</div>
+            <div style="flex-grow: 1; background: transparent; border: 3px solid white; color: white; border-radius: 8px; padding: 10px;">{row['Ime']}</div>
+            <div style="width: 80px; background: #1a1e26; color: white; border-radius: 8px; text-align: center; padding: 10px;">{row['Poeni']}</div>
+        </div>
+        """
+    
+    full_html = f"""
+    <html>
+        <body style="background-color: #00FF00; margin: 20px; overflow: hidden;">
+            <div style="width: 400px;">
+                <div style="background: white; color: black; padding: 10px; border-radius: 8px; text-align: center; font-weight: 900; margin-bottom: 15px;">LEADERBOARD</div>
+                {rows_html}
+            </div>
+        </body>
+    </html>
+    """
+    # Čuvamo fajl lokalno
+    with open("vmix_overlay.html", "w", encoding="utf-8") as f:
+        f.write(full_html)
 
-    /* Potpuno uklanjanje Streamlit elemenata koji guše pretraživač */
-    [data-testid="stHeader"], footer, [data-testid="stSidebar"] { display: none !important; }
-    .block-container { padding: 0 !important; }
+# --- 3. GLAVNA PETLJA ---
+st.title("vMix Signal Generator")
+st.write("Ova aplikacija generiše 'vmix_overlay.html' u tvom folderu.")
 
-    .stream-wrapper {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        width: 450px;
-    }
-
-    .box-white {
-        background-color: white;
-        border-radius: 10px;
-        padding: 15px;
-        color: black;
-        font-weight: 800;
-        text-align: center;
-        text-transform: uppercase;
-        margin-bottom: 10px;
-    }
-
-    .table-row {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 8px;
-    }
-
-    .cell-pos { width: 60px; background: white; color: black; border-radius: 8px; text-align: center; font-weight: bold; padding: 10px 0; }
-    .cell-name { flex-grow: 1; background: #00FF00; border: 3px solid white; color: white; border-radius: 8px; padding: 10px; font-weight: bold; }
-    .cell-reps { width: 90px; background: #1a1e26; color: white; border-radius: 8px; text-align: center; font-weight: bold; padding: 10px 0; }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 4. LOGIKA PODATAKA ---
-def get_data():
-    try:
-        ref = db.reference('competitions')
-        data = ref.get()
-        if not data: return []
-        
+# Uzmi podatke iz Firebase
+try:
+    ref = db.reference('competitions')
+    data = ref.get()
+    if data:
         results = []
-        # Fleksibilna obrada listi/dictova
         it = enumerate(data) if isinstance(data, list) else data.items()
         for _, athletes in it:
             if athletes:
@@ -81,24 +62,15 @@ def get_data():
                     if d and isinstance(d, dict):
                         results.append({"Ime": d.get('name', 'N/A'), "Poeni": d.get('reps', 0)})
         
-        if not results: return []
-        df = pd.DataFrame(results).groupby("Ime")["Poeni"].sum().reset_index()
-        return df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10).to_dict('records')
-    except: return []
+        if results:
+            df = pd.DataFrame(results).groupby("Ime")["Poeni"].sum().reset_index()
+            df = df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10)
+            generate_vmix_html(df)
+            st.success("HTML generisan! Uvezi 'vmix_overlay.html' u vMix.")
+            st.table(df)
+except Exception as e:
+    st.error(f"Greška: {e}")
 
-# --- 5. RENDER ---
-data_list = get_data()
-
-st.markdown('<div class="stream-wrapper">', unsafe_allow_html=True)
-st.markdown('<div class="box-white">Leaderboard Live</div>', unsafe_allow_html=True)
-
-for i, row in enumerate(data_list):
-    st.markdown(f"""
-        <div class="table-row">
-            <div class="cell-pos">{i+1}</div>
-            <div class="cell-name">{row['Ime']}</div>
-            <div class="cell-reps">{row['Poeni']}</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
+# Automatsko osvežavanje same skripte
+from streamlit_autorefresh import st_autorefresh
+st_autorefresh(interval=3000, key="generator")
