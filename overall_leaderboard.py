@@ -4,11 +4,17 @@ from firebase_admin import credentials, db
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. KONFIGURACIJA ---
+# --- 1. PODEŠAVANJA KOJA MOŽEŠ MENJATI ---
+TABELA_SIRINA = "380px"  # Ukupna širina grafike
+SIRINA_POZICIJA = "50px" # Širina kolone za broj (1, 2, 3...)
+SIRINA_POENI = "80px"    # Širina kolone za rezultat (reps)
+# Ime takmičara će automatski zauzeti sav preostali prostor (1fr)
+
+# --- 2. KONFIGURACIJA ---
 st.set_page_config(page_title="vMix Safe Overlay", layout="wide")
 st_autorefresh(interval=3000, key="broadcast_refresh")
 
-# --- 2. FIREBASE KONEKCIJA ---
+# --- 3. FIREBASE KONEKCIJA ---
 if not firebase_admin._apps:
     fb_secrets = st.secrets["firebase"]
     fixed_key = fb_secrets["private_key"].replace("\\n", "\n")
@@ -22,68 +28,68 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. CSS SA KONTROLOM ŠIRINE ---
-st.markdown("""
+# --- 4. CSS SA DINAMIČKIM ŠIRINAMA ---
+st.markdown(f"""
     <style>
-    .stApp { background-color: #00FF00 !important; }
-    [data-testid="stHeader"], footer, .stDeployButton { display: none !important; }
+    .stApp {{ background-color: #00FF00 !important; }}
+    [data-testid="stHeader"], footer, .stDeployButton {{ display: none !important; }}
     
-    .block-container { 
-        padding-top: 40px !important;    
-        padding-left: 50px !important;   /* Safe area lijevo */
+    .block-container {{ 
+        padding-top: 50px !important;    
+        padding-left: 60px !important; 
         margin: 0 !important; 
-    }
+    }}
 
-    /* OVDJE KONTROLIŠEŠ UKUPNU ŠIRINU TABELE */
-    .corner-overlay {
-        width: 360px; /* Smanjeno sa 420px na 360px */
+    /* Glavni kontejner koristi varijablu */
+    .corner-overlay {{
+        width: {TABELA_SIRINA}; 
         font-family: 'Arial Black', sans-serif;
-    }
+    }}
 
-    .logo-block {
+    .logo-block {{
         background-color: white;
         color: black;
-        padding: 12px;
+        padding: 15px;
         text-align: center;
         text-transform: uppercase;
         font-weight: 900;
-        font-size: 18px;
+        font-size: 20px;
         margin-bottom: 5px;
-    }
+    }}
 
-    /* OVDJE KONTROLIŠEŠ ŠIRINU KOLONA (50px pozicija, 1fr ime, 70px poeni) */
-    .header-grid, .row-grid {
+    /* Mreža koristi varijable za kolone */
+    .header-grid, .row-grid {{
         display: grid;
-        grid-template-columns: 35px 0.7fr 80px; /* Sužene kolone za brojeve */
+        grid-template-columns: {SIRINA_POZICIJA} 1fr {SIRINA_POENI};
         gap: 2px;
         margin-bottom: 2px;
-    }
+    }}
 
-    .header-cell {
+    .header-cell {{
         background-color: black;
         color: white;
-        padding: 8px;
+        padding: 10px;
         text-align: center;
-        font-size: 10px;
-    }
+        font-size: 11px;
+    }}
 
-    .pos-cell { background: white; color: black; font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-    .name-cell { background: white; color: black; padding-left: 12px; display: flex; align-items: center; font-weight: bold; font-size: 18px; overflow: hidden; }
-    .reps-cell { background: #1a1e26; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; }
+    .pos-cell {{ background: white; color: black; font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 18px; }}
+    .name-cell {{ background: white; color: black; padding-left: 15px; display: flex; align-items: center; font-weight: bold; font-size: 15px; overflow: hidden; white-space: nowrap; }}
+    .reps-cell {{ background: #1a1e26; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }}
 
-    .sponsor-block {
+    .sponsor-block {{
         background-color: white;
         color: black;
-        padding: 12px;
+        padding: 15px;
         margin-top: 10px;
         text-align: center;
         font-weight: bold;
-        font-size: 13px;
-    }
+        font-size: 14px;
+    }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. DATA LOGIKA ---
+# --- 5. LOGIKA I RENDER ---
 def get_stream_results():
     try:
         ref = db.reference('competitions')
@@ -102,7 +108,7 @@ def get_stream_results():
         return df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10).to_dict('records')
     except: return []
 
-# --- 5. RENDER ---
+# Raspored kolona u Streamlitu (1:4 odnos da bi grafika ostala levo)
 left_col, _ = st.columns([1, 4])
 
 with left_col:
