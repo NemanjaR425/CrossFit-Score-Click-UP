@@ -33,42 +33,37 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 4. CSS ZA TOTALNO UKLANJANJE SVIH IKONICA (UNIVERZALNI PRISTUP) ---
+# --- 4. CSS: "THE CUT-OFF METHOD" ---
 st.markdown(f"""
     <style>
-    /* 1. Primarna Chroma pozadina */
+    /* 1. Chroma pozadina na cijelom ekranu */
     .stApp {{ 
-        background-color: #00FF00 !important; 
+        background-color: #00FF00 !important;
     }}
-    
-    /* 2. SAKRIVANJE SVIH SISTEMSKIH ELEMENATA - NUCLEAR OPTION */
-    /* Ciljamo sve poznate Streamlit klase za branding i toolbar */
+
+    /* 2. SAKRIVANJE SVEGA ŠTO MOŽEMO - Standardni set */
     header, footer, #MainMenu, .stDeployButton, [data-testid="stHeader"], 
     [data-testid="stToolbar"], [data-testid="stStatusWidget"], 
-    [data-testid="stDecoration"], [data-testid="stSidebar"],
-    .viewerBadge_container__1QSob, .stActionButton, 
-    div[class^="viewerBadge"], div[class^="st__decoration"],
-    div[data-testid="stStatusWidget"] {{
-        visibility: hidden !important;
+    [data-testid="stDecoration"], .viewerBadge_container__1QSob {{
         display: none !important;
-        opacity: 0 !important;
-        height: 0 !important;
-        width: 0 !important;
-        pointer-events: none !important;
+        visibility: hidden !important;
     }}
 
-    /* Sakrivanje specifičnog Streamlit "Made with Streamlit" linka */
-    a[href*="streamlit.io"] {{ display: none !important; }}
+    /* 3. "NUCLEAR OPTION": Ograničavamo vidljivost cijelog sajta */
+    /* Ovim kažemo: Sve što je niže od 800px (ispod tabele), nemoj ni prikazivati */
+    .main .block-container {{
+        max-height: 800px !important;
+        overflow: hidden !important;
+    }}
 
-    /* 3. Safe Area i Layout */
+    /* Safe Area */
     .block-container {{ 
         padding-top: {GORNJA_MARGINA} !important;    
         padding-left: {LEVA_MARGINA} !important; 
         margin: 0 !important; 
-        max-width: none !important;
     }}
 
-    /* Tvoja tabela */
+    /* Tabela */
     .corner-overlay {{
         width: {TABELA_SIRINA}; 
         font-family: 'Arial Black', sans-serif;
@@ -110,20 +105,13 @@ def get_stream_results():
         data = ref.get()
         if not data: return []
         results = []
-        
         it = enumerate(data) if isinstance(data, list) else data.items()
         for _, athletes in it:
             if athletes:
                 a_it = enumerate(athletes) if isinstance(athletes, list) else athletes.items()
                 for _, d in a_it:
                     if d and isinstance(d, dict):
-                        # Osiguravamo da su poeni broj
-                        score = d.get('reps', 0)
-                        results.append({
-                            "Ime": d.get('name', 'N/A'), 
-                            "Poeni": int(score)
-                        })
-        
+                        results.append({"Ime": d.get('name', 'N/A'), "Poeni": int(d.get('reps', 0))})
         if not results: return []
         df = pd.DataFrame(results).groupby("Ime")["Poeni"].sum().reset_index()
         return df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10).to_dict('records')
@@ -148,20 +136,13 @@ with left_col:
     leaderboard = get_stream_results()
     if leaderboard:
         for i, row in enumerate(leaderboard):
-            # Čiste varijable za renderovanje bez f-string konflikata
-            p = i + 1
-            n = row['Ime']
-            s = row['Poeni']
-            
             st.markdown(f"""
                 <div class="row-grid">
-                    <div class="pos-cell">{p}</div>
-                    <div class="name-cell">{n}</div>
-                    <div class="reps-cell">{s}</div>
+                    <div class="pos-cell">{i+1}</div>
+                    <div class="name-cell">{row['Ime']}</div>
+                    <div class="reps-cell">{row['Poeni']}</div>
                 </div>
             """, unsafe_allow_html=True)
-    else:
-        st.markdown("<div style='color:white; text-align:center; padding:10px;'>Učitavanje...</div>", unsafe_allow_html=True)
-
+    
     st.markdown('<div class="sponsor-block">SPONZORI OVDJE</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
