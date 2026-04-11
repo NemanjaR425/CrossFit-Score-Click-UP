@@ -22,72 +22,63 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. CSS SA SAFE AREA RAZMAKOM ---
+# --- 3. CSS SA KONTROLOM ŠIRINE ---
 st.markdown("""
     <style>
-    /* Chroma pozadina */
     .stApp { background-color: #00FF00 !important; }
     [data-testid="stHeader"], footer, .stDeployButton { display: none !important; }
     
-    /* Resetovanje Streamlitovog default paddinga */
     .block-container { 
-        padding-top: 50px !important;    /* Razmak odozgo */
-        padding-left: 60px !important;   /* SAFE AREA sa lijeve strane */
+        padding-top: 40px !important;    
+        padding-left: 50px !important;   /* Safe area lijevo */
         margin: 0 !important; 
     }
 
-    /* Kontejner za tabelu - FIKSNA ŠIRINA */
+    /* OVDJE KONTROLIŠEŠ UKUPNU ŠIRINU TABELE */
     .corner-overlay {
-        width: 220px; 
+        width: 360px; /* Smanjeno sa 420px na 360px */
         font-family: 'Arial Black', sans-serif;
     }
 
-    /* Logo - Flat dizajn */
     .logo-block {
         background-color: white;
         color: black;
-        padding: 15px;
+        padding: 12px;
         text-align: center;
         text-transform: uppercase;
         font-weight: 900;
-        font-size: 20px;
+        font-size: 18px;
         margin-bottom: 5px;
     }
 
-    /* Tabela */
-    .header-grid {
+    /* OVDJE KONTROLIŠEŠ ŠIRINU KOLONA (50px pozicija, 1fr ime, 70px poeni) */
+    .header-grid, .row-grid {
         display: grid;
-        grid-template-columns: 50px 1fr 80px;
+        grid-template-columns: 45px 1fr 70px; /* Sužene kolone za brojeve */
         gap: 2px;
         margin-bottom: 2px;
     }
+
     .header-cell {
         background-color: black;
         color: white;
-        padding: 10px;
+        padding: 8px;
         text-align: center;
-        font-size: 11px;
+        font-size: 10px;
     }
 
-    .row-grid {
-        display: grid;
-        grid-template-columns: 50px 1fr 80px;
-        gap: 2px;
-        margin-bottom: 2px;
-    }
-    .pos-cell { background: white; color: black; font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    .name-cell { background: white; color: black; padding-left: 15px; display: flex; align-items: center; font-weight: bold; font-size: 15px; }
-    .reps-cell { background: #1a1e26; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }
+    .pos-cell { background: white; color: black; font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .name-cell { background: white; color: black; padding-left: 12px; display: flex; align-items: center; font-weight: bold; font-size: 14px; overflow: hidden; }
+    .reps-cell { background: #1a1e26; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; }
 
-    /* Sponzori */
     .sponsor-block {
         background-color: white;
         color: black;
-        padding: 15px;
+        padding: 12px;
         margin-top: 10px;
         text-align: center;
         font-weight: bold;
-        font-size: 14px;
+        font-size: 13px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -112,8 +103,7 @@ def get_stream_results():
     except: return []
 
 # --- 5. RENDER ---
-# Ovdje koristimo kolone da bismo tabelu zadržali strogo lijevo
-left_col, _ = st.columns([1, 3])
+left_col, _ = st.columns([1, 4])
 
 with left_col:
     st.markdown('<div class="corner-overlay">', unsafe_allow_html=True)
@@ -122,7 +112,7 @@ with left_col:
     st.markdown("""
         <div class="header-grid">
             <div class="header-cell">POZ</div>
-            <div class="header-cell">IME I PREZIME</div>
+            <div class="header-cell">TAKMIČAR</div>
             <div class="header-cell">PON</div>
         </div>
     """, unsafe_allow_html=True)
