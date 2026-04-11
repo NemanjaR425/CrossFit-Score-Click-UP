@@ -36,7 +36,7 @@ st.markdown("""
 
     /* OVDJE KONTROLIŠEŠ UKUPNU ŠIRINU TABELE */
     .corner-overlay {
-        width: 360px; /* Smanjeno sa 420px na 360px */
+        width: 300px; /* Smanjeno sa 420px na 360px */
         font-family: 'Arial Black', sans-serif;
     }
 
