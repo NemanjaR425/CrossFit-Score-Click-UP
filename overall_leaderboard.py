@@ -4,11 +4,12 @@ from firebase_admin import credentials, db
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. OSNOVNA PODEŠAVANJA ---
+# --- 1. KONFIGURACIJA ---
+# Isključujemo padding da bi grafika bila fiksirana uz ivicu
 st.set_page_config(page_title="vMix Overlay", layout="wide")
 st_autorefresh(interval=3000, key="vmix_refresh")
 
-# --- 2. FIREBASE (Standardno) ---
+# --- 2. FIREBASE KONEKCIJA ---
 if not firebase_admin._apps:
     fb_secrets = st.secrets["firebase"]
     fixed_key = fb_secrets["private_key"].replace("\\n", "\n")
@@ -22,49 +23,100 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. SPECIJALNI CSS ZA VMIX (Transparentnost umjesto Chrome Key-a) ---
+# --- 3. SPECIJALNI BROADCAST CSS ---
 st.markdown("""
     <style>
-    /* Ključno: Postavljamo jarko zelenu koja je 'standard' za vMix */
-    .stApp {
-        background-color: #00FF00 !important;
+    /* Čista Chroma zelena za pozadinu */
+    .stApp { background-color: #00FF00 !important; }
+    
+    /* Sakrivanje Streamlit UI-ja koji usporava vMix */
+    [data-testid="stHeader"], footer, [data-testid="stSidebar"], .stDeployButton { display: none !important; }
+    .block-container { padding: 0 !important; margin: 0 !important; }
+
+    .stream-overlay {
+        position: absolute;
+        top: 30px;
+        left: 30px;
+        width: 460px;
+        font-family: 'Arial Black', Gadget, sans-serif;
     }
 
-    /* Potpuno uklanjanje Streamlit elemenata koji guše pretraživač */
-    [data-testid="stHeader"], footer, [data-testid="stSidebar"] { display: none !important; }
-    .block-container { padding: 0 !important; }
-
-    .stream-wrapper {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        width: 450px;
-    }
-
-    .box-white {
+    .logo-box {
         background-color: white;
-        border-radius: 10px;
-        padding: 15px;
         color: black;
-        font-weight: 800;
+        border-radius: 12px;
+        padding: 15px;
         text-align: center;
         text-transform: uppercase;
-        margin-bottom: 10px;
+        font-weight: 900;
+        font-size: 22px;
+        margin-bottom: 15px;
     }
 
-    .table-row {
-        display: flex;
+    .header-grid {
+        display: grid;
+        grid-template-columns: 60px 1fr 100px;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .header-cell {
+        background: black;
+        color: white;
+        text-align: center;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 12px;
+    }
+
+    .row-grid {
+        display: grid;
+        grid-template-columns: 60px 1fr 100px;
         gap: 10px;
         margin-bottom: 8px;
     }
+    .cell-pos {
+        background: white;
+        color: black;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 900;
+    }
+    .cell-name {
+        background: #00FF00; /* Chroma */
+        color: white;
+        border: 3px solid white;
+        border-radius: 10px;
+        padding-left: 15px;
+        display: flex;
+        align-items: center;
+        font-size: 18px;
+    }
+    .cell-reps {
+        background: #1a1e26;
+        color: white;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
 
-    .cell-pos { width: 60px; background: white; color: black; border-radius: 8px; text-align: center; font-weight: bold; padding: 10px 0; }
-    .cell-name { flex-grow: 1; background: #00FF00; border: 3px solid white; color: white; border-radius: 8px; padding: 10px; font-weight: bold; }
-    .cell-reps { width: 90px; background: #1a1e26; color: white; border-radius: 8px; text-align: center; font-weight: bold; padding: 10px 0; }
+    .sponsor-box {
+        background: white;
+        color: black;
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 15px;
+        text-align: center;
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. LOGIKA PODATAKA ---
+# --- 4. DATA LOGIKA ---
 def get_data():
     try:
         ref = db.reference('competitions')
@@ -72,33 +124,40 @@ def get_data():
         if not data: return []
         
         results = []
-        # Fleksibilna obrada listi/dictova
         it = enumerate(data) if isinstance(data, list) else data.items()
         for _, athletes in it:
             if athletes:
                 a_it = enumerate(athletes) if isinstance(athletes, list) else athletes.items()
                 for _, d in a_it:
                     if d and isinstance(d, dict):
-                        results.append({"Ime": d.get('name', 'N/A'), "Poeni": d.get('reps', 0)})
+                        results.append({"Ime": d.get('name', 'N/A'), "Reps": d.get('reps', 0)})
         
         if not results: return []
-        df = pd.DataFrame(results).groupby("Ime")["Poeni"].sum().reset_index()
-        return df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10).to_dict('records')
+        df = pd.DataFrame(results).groupby("Ime")["Reps"].sum().reset_index()
+        return df.sort_values(by="Reps", ascending=False).reset_index(drop=True).head(10).to_dict('records')
     except: return []
 
-# --- 5. RENDER ---
-data_list = get_data()
+# --- 5. RENDEROVANJE ---
+st.markdown('<div class="stream-overlay">', unsafe_allow_html=True)
+st.markdown('<div class="logo-box">COMPETITION LOGO</div>', unsafe_allow_html=True)
 
-st.markdown('<div class="stream-wrapper">', unsafe_allow_html=True)
-st.markdown('<div class="box-white">Leaderboard Live</div>', unsafe_allow_html=True)
+st.markdown("""
+    <div class="header-grid">
+        <div class="header-cell">POS</div>
+        <div class="header-cell">NAME</div>
+        <div class="header-cell">REPS</div>
+    </div>
+""", unsafe_allow_html=True)
 
-for i, row in enumerate(data_list):
+leaderboard = get_data()
+for i, row in enumerate(leaderboard):
     st.markdown(f"""
-        <div class="table-row">
+        <div class="row-grid">
             <div class="cell-pos">{i+1}</div>
             <div class="cell-name">{row['Ime']}</div>
-            <div class="cell-reps">{row['Poeni']}</div>
+            <div class="cell-reps">{row['Reps']}</div>
         </div>
     """, unsafe_allow_html=True)
 
+st.markdown('<div class="sponsor-box">Sponsors Space</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
