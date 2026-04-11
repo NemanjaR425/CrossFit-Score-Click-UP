@@ -113,7 +113,7 @@ left_col, _ = st.columns([1, 4])
 
 with left_col:
     st.markdown('<div class="corner-overlay">', unsafe_allow_html=True)
-    st.markdown('<div class="logo-block">Takmičarski Logo</div>', unsafe_allow_html=True)
+    st.markdown('<div class="logo-block">Logo Takmicenja</div>', unsafe_allow_html=True)
     
     st.markdown("""
         <div class="header-grid">
