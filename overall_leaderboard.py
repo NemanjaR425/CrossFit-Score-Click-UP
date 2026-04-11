@@ -1,135 +1,144 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
+import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. KONFIGURACIJA I OSVJEŽAVANJE ---
-st.set_page_config(page_title="Ukupna Rang Lista", layout="centered")
-st_autorefresh(interval=5000, key="overall_refresh")
+# --- 1. KONFIGURACIJA STRANICE ---
+st.set_page_config(
+    page_title="LIVE Leaderboard", 
+    layout="wide", 
+    initial_sidebar_state="collapsed"
+)
+
+# Automatsko osvježavanje svake 3 sekunde za rezultate uživo
+st_autorefresh(interval=3000, key="broadcast_refresh")
 
 # --- 2. FIREBASE KONEKCIJA ---
 if not firebase_admin._apps:
     fb_secrets = st.secrets["firebase"]
     fixed_key = fb_secrets["private_key"].replace("\\n", "\n")
     cred = credentials.Certificate({
-        "type": fb_secrets["type"], "project_id": fb_secrets["project_id"],
-        "private_key_id": fb_secrets["private_key_id"], "private_key": fixed_key,
-        "client_email": fb_secrets["client_email"], "client_id": fb_secrets["client_id"],
-        "auth_uri": fb_secrets["auth_uri"], "token_uri": fb_secrets["token_uri"],
+        "type": fb_secrets["type"],
+        "project_id": fb_secrets["project_id"],
+        "private_key_id": fb_secrets["private_key_id"],
+        "private_key": fixed_key,
+        "client_email": fb_secrets["client_email"],
+        "client_id": fb_secrets["client_id"],
+        "auth_uri": fb_secrets["auth_uri"],
+        "token_uri": fb_secrets["token_uri"],
         "auth_provider_x509_cert_url": fb_secrets["auth_provider_x509_cert_url"],
         "client_x509_cert_url": fb_secrets["client_x509_cert_url"],
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. STILIZACIJA (CSS) ---
+# --- 3. SPECIJALNI VMIX CSS (CHROMA KEY) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0b0e14; }
-    .block-container { padding-top: 1rem !important; max-width: 500px !important; }
-    
-    /* Centriranje logotipa */
-    [data-testid="stImage"] {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 10px;
+    /* Zelena pozadina za Chroma Key u vMix-u */
+    .stApp {
+        background-color: #00FF00 !important;
     }
 
-    .leaderboard-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #1a1e26;
-        padding: 12px 15px;
-        margin-bottom: 8px;
-        border-radius: 10px;
-        border-left: 4px solid #ff8a50;
-    }
-    
-    .info-container { display: flex; flex-direction: column; gap: 4px; }
-    .rank-name { display: flex; align-items: center; gap: 10px; }
-    .rank { color: #ff8a50; font-weight: 800; font-size: 16px; }
-    .athlete-name { color: white; font-weight: 600; font-size: 15px; text-transform: uppercase; }
-    .breakdown { color: #666; font-size: 11px; font-family: monospace; }
-    .score-container { text-align: right; }
-    .total-score { color: #ffffff; font-size: 22px; font-weight: 800; display: block; line-height: 1; }
-    .score-label { color: #444; font-size: 9px; text-transform: uppercase; font-weight: bold; }
-    st.markdown("""
-    /* Postavlja pozadinu na 'Chroma' zelenu za lakše uklanjanje u vMix-u */
-    .stApp {
-        background-color: #00FF00; 
-    }
-    
-    /* Sakriva Streamlit header, footer i meni */
+    /* Sakrivanje svih Streamlit elemenata koji kvare grafiku */
     [data-testid="stHeader"], footer, #MainMenu {
         visibility: hidden;
     }
 
-    /* Prilagođava tabelu da bude čitljiva na TV-u */
-    .stTable {
-        background-color: rgba(0, 0, 0, 0.8) !important; /* Crna sa 80% providnosti */
-        color: white !important;
-        font-size: 24px !important;
-        border-radius: 15px;
+    /* Kontejner za tabelu - tamna i polunapravidna za bolji kontrast */
+    .leaderboard-container {
+        background-color: rgba(11, 14, 20, 0.9);
+        padding: 30px;
+        border-radius: 20px;
+        border: 2px solid #333;
+        margin-top: 50px;
     }
 
-    h1 { color: white !important; font-size: 26px !important; text-align: center; margin-top: 0px !important; }
+    /* Stilizacija naslova */
+    .title-text {
+        color: white;
+        font-family: 'Helvetica Neue', sans-serif;
+        font-size: 42px;
+        font-weight: 800;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 5px;
+        margin-bottom: 20px;
+    }
+
+    /* Tabela dizajna */
+    .stTable {
+        width: 100%;
+        color: white !important;
+        font-size: 28px !important;
+    }
+    
+    /* Povećanje redova u tabeli za bolju čitljivost na TV-u */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    
+    th {
+        background-color: #2da94f !important;
+        color: white !important;
+        text-align: left !important;
+        padding: 15px !important;
+        font-size: 22px;
+    }
+    
+    td {
+        padding: 15px !important;
+        border-bottom: 1px solid #444 !important;
+    }
+
+    /* Isticanje prvog mjesta */
+    tr:nth-child(1) {
+        background-color: rgba(255, 215, 0, 0.2) !important;
+        font-weight: bold;
+    }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# --- 4. LOGOTIP I NASLOV ---
-LOGO_SIZE = 150 
-
-try:
-    st.image("logo.png", width=LOGO_SIZE) 
-except:
-    st.title("🏆 GENERALNI PLASMAN")
-
-# --- 5. AGREGACIJA PODATAKA ---
-ref = db.reference('competitions')
-all_data = ref.get()
-
-if all_data:
-    totals = {}
-    for wod_key, athletes in all_data.items():
-        # Skraćivanje imena za prikaz (npr. WOD_1 -> W1)
-        display_wod = wod_key.replace("WOD_", "W") 
-        athlete_items = athletes.items() if isinstance(athletes, dict) else enumerate(athletes)
+# --- 4. LOGIKA ZA POVLAČENJE PODATAKA ---
+def get_all_results():
+    try:
+        ref = db.reference('competitions')
+        all_data = ref.get()
         
-        for a_id, info in athlete_items:
-            if info:
-                a_id_str = str(a_id)
-                name = info.get("name", f"ID: {a_id_str}")
-                reps = info.get("reps", 0)
-                
-                if a_id_str not in totals:
-                    totals[a_id_str] = {"name": name, "total": 0, "breakdown": {}}
-                
-                totals[a_id_str]["total"] += reps
-                totals[a_id_str]["breakdown"][display_wod] = reps
+        results = []
+        if all_data:
+            for wod_name, athletes in all_data.items():
+                for athlete_id, details in athletes.items():
+                    results.append({
+                        "Takmičar": details.get('name', 'Neznato'),
+                        "WOD": wod_name.replace("_", " "),
+                        "Ponavljanja": details.get('reps', 0)
+                    })
+        
+        df = pd.DataFrame(results)
+        
+        # Agregacija - sabiranje ponavljanja kroz sve WOD-ove za ukupni poredak
+        if not df.empty:
+            summary = df.groupby("Takmičar")["Ponavljanja"].sum().reset_index()
+            summary = summary.sort_values(by="Ponavljanja", ascending=False).reset_index(drop=True)
+            summary.index += 1  # Rangiranje od 1
+            return summary
+        return pd.DataFrame()
+    except Exception as e:
+        st.error(f"Greška: {e}")
+        return pd.DataFrame()
 
-    # Sortiranje po ukupnom broju ponavljanja
-    sorted_overall = sorted(totals.values(), key=lambda x: x['total'], reverse=True)
+# --- 5. PRIKAZ ZA BROADCAST ---
+st.markdown('<div class="leaderboard-container">', unsafe_allow_html=True)
+st.markdown('<div class="title-text">Ukupni Poredak - Live</div>', unsafe_allow_html=True)
 
-    # --- 6. PRIKAZ REZULTATA ---
-    for i, entry in enumerate(sorted_overall):
-        # Kreiranje niza pojedinačnih rezultata: "W1:20 • W2:15..."
-        b_list = [f"{k}:{v}" for k, v in sorted(entry['breakdown'].items())]
-        breakdown_str = " • ".join(b_list)
+leaderboard_df = get_all_results()
 
-        st.markdown(f"""
-            <div class="leaderboard-row">
-                <div class="info-container">
-                    <div class="rank-name">
-                        <span class="rank">#{i+1}</span>
-                        <span class="athlete-name">{entry['name']}</span>
-                    </div>
-                    <div class="breakdown">{breakdown_str}</div>
-                </div>
-                <div class="score-container">
-                    <span class="total-score">{entry['total']}</span>
-                    <span class="score-label">Ukupno Pon.</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+if not leaderboard_df.empty:
+    # Prikaz tabele
+    st.table(leaderboard_df)
 else:
-    st.info("Sinhronizacija podataka u toku...")
+    st.markdown("<h3 style='text-align:center; color:white;'>Čekanje na rezultate...</h3>", unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
