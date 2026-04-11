@@ -28,7 +28,7 @@ st.markdown("""
     <style>
     /* 1. Chroma Key pozadina i sakrivanje UI */
     .stApp {
-        background-color: #00FF00 !important;
+        background-color: #003049 !important;
     }
     [data-testid="stHeader"], footer { visibility: hidden; }
 
