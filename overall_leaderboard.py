@@ -71,7 +71,7 @@ st.markdown("""
 
     .row-grid {
         display: grid;
-        grid-template-columns: 50px 1fr 50px;
+        grid-template-columns: 50px 1fr 80px;
         gap: 2px;
         margin-bottom: 2px;
     }
