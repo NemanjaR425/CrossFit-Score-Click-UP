@@ -33,35 +33,39 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 4. CSS ZA TOTALNO SKRIVANJE IKONICA ---
-# Koristimo najširi mogući spektar selektora da sakrijemo "Streamlit branding"
+# --- 4. CSS ZA TOTALNO UKLANJANJE SVIH IKONICA (UNIVERZALNI PRISTUP) ---
 st.markdown(f"""
     <style>
-    /* 1. Chroma pozadina */
+    /* 1. Primarna Chroma pozadina */
     .stApp {{ 
         background-color: #00FF00 !important; 
     }}
     
-    /* 2. UKLANJANJE SVIH STREAMLIT ELEMENATA (IKONICA) */
+    /* 2. SAKRIVANJE SVIH SISTEMSKIH ELEMENATA - NUCLEAR OPTION */
+    /* Ciljamo sve poznate Streamlit klase za branding i toolbar */
     header, footer, #MainMenu, .stDeployButton, [data-testid="stHeader"], 
     [data-testid="stToolbar"], [data-testid="stStatusWidget"], 
     [data-testid="stDecoration"], [data-testid="stSidebar"],
     .viewerBadge_container__1QSob, .stActionButton, 
-    div[class^="viewerBadge"] {{
+    div[class^="viewerBadge"], div[class^="st__decoration"],
+    div[data-testid="stStatusWidget"] {{
         visibility: hidden !important;
         display: none !important;
         opacity: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
         pointer-events: none !important;
     }}
-    
-    /* Dodatno čišćenje ivica */
-    .stApp > header {{ display: none !important; }}
-    
-    /* Postavljanje Safe Area */
+
+    /* Sakrivanje specifičnog Streamlit "Made with Streamlit" linka */
+    a[href*="streamlit.io"] {{ display: none !important; }}
+
+    /* 3. Safe Area i Layout */
     .block-container {{ 
         padding-top: {GORNJA_MARGINA} !important;    
         padding-left: {LEVA_MARGINA} !important; 
         margin: 0 !important; 
+        max-width: none !important;
     }}
 
     /* Tvoja tabela */
@@ -107,38 +111,32 @@ def get_stream_results():
         if not data: return []
         results = []
         
-        # Ispravno mapiranje podataka bez obzira na strukturu
         it = enumerate(data) if isinstance(data, list) else data.items()
         for _, athletes in it:
             if athletes:
                 a_it = enumerate(athletes) if isinstance(athletes, list) else athletes.items()
                 for _, d in a_it:
                     if d and isinstance(d, dict):
-                        reps = d.get('reps', 0)
+                        # Osiguravamo da su poeni broj
+                        score = d.get('reps', 0)
                         results.append({
                             "Ime": d.get('name', 'N/A'), 
-                            "Poeni": int(reps)
+                            "Poeni": int(score)
                         })
         
         if not results: return []
-        
-        # Grupisanje i sumiranje
         df = pd.DataFrame(results).groupby("Ime")["Poeni"].sum().reset_index()
         return df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10).to_dict('records')
-    except Exception:
+    except:
         return []
 
 # --- 6. RENDER ---
 left_col, _ = st.columns([1, 4])
 
 with left_col:
-    # Otvaramo glavni kontejner
     st.markdown('<div class="corner-overlay">', unsafe_allow_html=True)
-    
-    # Logo
     st.markdown('<div class="logo-block">Logo Takmičenja</div>', unsafe_allow_html=True)
     
-    # Zaglavlje
     st.markdown(f"""
         <div class="header-grid">
             <div class="header-cell">POZ</div>
@@ -147,11 +145,10 @@ with left_col:
         </div>
     """, unsafe_allow_html=True)
 
-    # Tabela rezultata
     leaderboard = get_stream_results()
     if leaderboard:
         for i, row in enumerate(leaderboard):
-            # Sigurno formatiranje HTML-a
+            # Čiste varijable za renderovanje bez f-string konflikata
             p = i + 1
             n = row['Ime']
             s = row['Poeni']
@@ -164,10 +161,7 @@ with left_col:
                 </div>
             """, unsafe_allow_html=True)
     else:
-        st.markdown("<div style='color:white; text-align:center; padding:10px;'>Čekanje podataka...</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:white; text-align:center; padding:10px;'>Učitavanje...</div>", unsafe_allow_html=True)
 
-    # Sponzori
     st.markdown('<div class="sponsor-block">SPONZORI OVDJE</div>', unsafe_allow_html=True)
-    
-    # Zatvaramo glavni kontejner
     st.markdown('</div>', unsafe_allow_html=True)
