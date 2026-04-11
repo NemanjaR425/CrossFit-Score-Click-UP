@@ -68,7 +68,7 @@ st.markdown("""
     }
 
     .pos-cell { background: white; color: black; font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-    .name-cell { background: white; color: black; padding-left: 12px; display: flex; align-items: center; font-weight: bold; font-size: 14px; overflow: hidden; }
+    .name-cell { background: white; color: black; padding-left: 12px; display: flex; align-items: center; font-weight: bold; font-size: 18px; overflow: hidden; }
     .reps-cell { background: #1a1e26; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; }
 
     .sponsor-block {
