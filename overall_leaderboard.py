@@ -4,16 +4,15 @@ from firebase_admin import credentials, db
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. KONTROLA ŠIRINE I RAZMAKA (Lako za prilagođavanje) ---
-TABELA_SIRINA = "360px"    # Ukupna širina grafike
-SIRINA_POZICIJA = "45px"   # Širina prve kolone (broj)
-SIRINA_POENI = "75px"      # Širina zadnje kolone (rezultat)
-LEVA_MARGINA = "60px"      # "Breathing space" sa leve strane
-GORNJA_MARGINA = "50px"    # Razmak od vrha ekrana
+# --- 1. KONTROLA ŠIRINE I RAZMAKA ---
+TABELA_SIRINA = "360px"    
+SIRINA_POZICIJA = "45px"   
+SIRINA_POENI = "75px"      
+LEVA_MARGINA = "60px"      
+GORNJA_MARGINA = "50px"    
 
 # --- 2. KONFIGURACIJA STRANICE ---
 st.set_page_config(page_title="vMix Clean Overlay", layout="wide")
-# Automatsko osvežavanje na svake 3 sekunde za rezultate uživo
 st_autorefresh(interval=3000, key="broadcast_refresh")
 
 # --- 3. FIREBASE KONEKCIJA ---
@@ -34,26 +33,30 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 4. CSS ZA ČISTU GRAFIKU I SKRIVANJE UI ELEMENATA ---
+# --- 4. CSS ZA TOTALNO SKRIVANJE IKONICA ---
 st.markdown(f"""
     <style>
-    /* Zelena pozadina za Chroma Key */
+    /* Zelena pozadina za vMix */
     .stApp {{ 
         background-color: #00FF00 !important; 
     }}
     
-    /* SAKRIVANJE STREAMLIT IKONICA (Toolbar, Meni, Deploy dugme) */
-    [data-testid="stHeader"], 
-    footer, 
-    .stDeployButton, 
-    [data-testid="stToolbar"], 
-    #MainMenu, 
-    [data-testid="stStatusWidget"] {{ 
-        display: none !important; 
-        visibility: hidden !important; 
-    }}
+    /* 1. SAKRIVANJE SVIH SISTEMSKIH ELEMENATA (Header, Footer, Toolbar) */
+    header {{visibility: hidden !important;}}
+    footer {{visibility: hidden !important;}}
+    #MainMenu {{visibility: hidden !important;}}
+    [data-testid="stHeader"] {{display: none !important;}}
+    .stDeployButton {{display: none !important;}}
     
-    /* Postavljanje Safe Area razmaka */
+    /* 2. SAKRIVANJE TOOLBAR-A I STATUSNIH IKONICA U DONJEM DESNOM UGLU */
+    [data-testid="stToolbar"] {{display: none !important;}}
+    [data-testid="stStatusWidget"] {{display: none !important;}}
+    
+    /* Dodatni sloj zaštite za ikone u donjem desnom uglu */
+    div[data-testid="stDecoration"] {{display: none !important;}}
+    button[title="View source"] {{display: none !important;}}
+    
+    /* Postavljanje Safe Area */
     .block-container {{ 
         padding-top: {GORNJA_MARGINA} !important;    
         padding-left: {LEVA_MARGINA} !important; 
@@ -66,7 +69,6 @@ st.markdown(f"""
         font-family: 'Arial Black', Gadget, sans-serif;
     }}
 
-    /* Stil za Gornji Logo */
     .logo-block {{
         background-color: white;
         color: black;
@@ -78,7 +80,6 @@ st.markdown(f"""
         margin-bottom: 5px;
     }}
 
-    /* Grid sistem za poravnanje kolona */
     .header-grid, .row-grid {{
         display: grid;
         grid-template-columns: {SIRINA_POZICIJA} 1fr {SIRINA_POENI};
@@ -86,7 +87,6 @@ st.markdown(f"""
         margin-bottom: 2px;
     }}
 
-    /* Stilovi za zaglavlje */
     .header-cell {{ 
         background-color: black; 
         color: white; 
@@ -96,40 +96,10 @@ st.markdown(f"""
         text-transform: uppercase;
     }}
 
-    /* Stilovi za redove sa rezultatima */
-    .pos-cell {{ 
-        background: white; 
-        color: black; 
-        font-weight: 900; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        font-size: 18px; 
-    }}
-    
-    .name-cell {{ 
-        background: white; 
-        color: black; 
-        padding-left: 15px; 
-        display: flex; 
-        align-items: center; 
-        font-weight: bold; 
-        font-size: 15px; 
-        overflow: hidden; 
-        white-space: nowrap; 
-    }}
-    
-    .reps-cell {{ 
-        background: #1a1e26; 
-        color: white; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        font-size: 20px; 
-        font-weight: bold; 
-    }}
+    .pos-cell {{ background: white; color: black; font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 18px; }}
+    .name-cell {{ background: white; color: black; padding-left: 15px; display: flex; align-items: center; font-weight: bold; font-size: 15px; overflow: hidden; white-space: nowrap; }}
+    .reps-cell {{ background: #1a1e26; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }}
 
-    /* Stil za Sponzore */
     .sponsor-block {{
         background-color: white;
         color: black;
@@ -143,42 +113,32 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. POVLAČENJE PODATAKA IZ FIREBASE-A ---
+# --- 5. DATA LOGIKA ---
 def get_stream_results():
     try:
         ref = db.reference('competitions')
         data = ref.get()
         if not data: return []
-        
         results = []
-        # Rukovanje podacima bez obzira da li su lista ili rečnik
         it = enumerate(data) if isinstance(data, list) else data.items()
         for _, athletes in it:
             if athletes:
                 a_it = enumerate(athletes) if isinstance(athletes, list) else athletes.items()
                 for _, d in a_it:
                     if d and isinstance(d, dict):
-                        results.append({"Ime": d.get('name', 'N/A'), "Poeni": d.get('reps', 0)})
-        
+                        results.append({{"Ime": d.get('name', 'N/A'), "Poeni": d.get('reps', 0)}})
         if not results: return []
-        
-        # Grupisanje po imenu i sumiranje rezultata
         df = pd.DataFrame(results).groupby("Ime")["Poeni"].sum().reset_index()
         return df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10).to_dict('records')
-    except Exception:
-        return []
+    except: return []
 
-# --- 6. PRIKAZ NA EKRANU ---
-# Koristimo kolone da bi desnih 80% ekrana ostalo potpuno prazno (zeleno)
+# --- 6. RENDER ---
 left_col, _ = st.columns([1, 4])
 
 with left_col:
     st.markdown('<div class="corner-overlay">', unsafe_allow_html=True)
-    
-    # Natpis na vrhu
     st.markdown('<div class="logo-block">Logo Takmičenja</div>', unsafe_allow_html=True)
     
-    # Zaglavlje tabele
     st.markdown("""
         <div class="header-grid">
             <div class="header-cell">POZ</div>
@@ -187,21 +147,18 @@ with left_col:
         </div>
     """, unsafe_allow_html=True)
 
-    # Dinamičko generisanje redova
     leaderboard = get_stream_results()
     if leaderboard:
         for i, row in enumerate(leaderboard):
             st.markdown(f"""
                 <div class="row-grid">
-                    <div class="pos-cell">{i+1}</div>
-                    <div class="name-cell">{row['Ime']}</div>
-                    <div class="reps-cell">{row['Poeni']}</div>
+                    <div class="pos-cell">{{i+1}}</div>
+                    <div class="name-cell">{{row['Ime']}}</div>
+                    <div class="reps-cell">{{row['Poeni']}}</div>
                 </div>
             """, unsafe_allow_html=True)
     else:
-        st.markdown("<div style='color:white; text-align:center; padding: 20px;'>Čekanje na podatke...</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:white; text-align:center;'>Čekanje...</div>", unsafe_allow_html=True)
 
-    # Donji blok za sponzore
     st.markdown('<div class="sponsor-block">SPONZORI OVDJE</div>', unsafe_allow_html=True)
-    
     st.markdown('</div>', unsafe_allow_html=True)
