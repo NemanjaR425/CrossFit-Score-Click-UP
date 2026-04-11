@@ -22,22 +22,23 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. CSS ZA FIKSNU GRAFIKU ---
+# --- 3. CSS SA DODATNIM MARGINAMA ---
 st.markdown("""
     <style>
-    /* Chroma pozadina */
+    /* Chroma pozadina za vMix */
     .stApp { background-color: #00FF00 !important; }
     [data-testid="stHeader"], footer, .stDeployButton { display: none !important; }
     .block-container { padding: 0 !important; margin: 0 !important; }
 
-    /* Kontejner za overlay - OŠTRI UGLOVI */
+    /* Glavni kontejner - DODATA VEĆA MARGINA LIJEVO (50px) */
     .corner-overlay {
-        width: 400px; /* FIKSNA ŠIRINA */
+        width: 420px; 
         font-family: 'Arial Black', sans-serif;
-        margin-left: 20px;
-        margin-top: 20px;
+        margin-left: 50px; /* Ovo pravi "breathing space" */
+        margin-top: 40px;  /* Malo prostora i odozgo */
     }
 
+    /* Logo - Flat dizajn */
     .logo-block {
         background-color: white;
         color: black;
@@ -45,43 +46,46 @@ st.markdown("""
         text-align: center;
         text-transform: uppercase;
         font-weight: 900;
-        font-size: 22px;
-        margin-bottom: 10px;
+        font-size: 20px;
+        margin-bottom: 5px; /* Smanjen razmak da bi tabela bila spojena */
     }
 
+    /* Tabela - Flat dizajn bez zaobljenja */
     .header-grid {
         display: grid;
         grid-template-columns: 50px 1fr 80px;
-        gap: 5px;
-        margin-bottom: 5px;
+        gap: 2px; /* Minimalan razmak za "flat" izgled */
+        margin-bottom: 2px;
     }
     .header-cell {
         background-color: black;
         color: white;
-        padding: 8px;
+        padding: 10px;
         text-align: center;
-        font-size: 12px;
+        font-size: 11px;
         text-transform: uppercase;
     }
 
     .row-grid {
         display: grid;
         grid-template-columns: 50px 1fr 80px;
-        gap: 5px;
-        margin-bottom: 5px;
+        gap: 2px;
+        margin-bottom: 2px;
     }
     .pos-cell { background: white; color: black; font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    .name-cell { background: white; color: black; padding-left: 15px; display: flex; align-items: center; font-weight: bold; font-size: 16px; }
+    .name-cell { background: white; color: black; padding-left: 15px; display: flex; align-items: center; font-weight: bold; font-size: 15px; }
     .reps-cell { background: #1a1e26; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }
 
+    /* Sponzori - Flat dizajn */
     .sponsor-block {
         background-color: white;
         color: black;
-        padding: 20px;
+        padding: 15px;
         margin-top: 10px;
         text-align: center;
         font-weight: bold;
         font-size: 14px;
+        text-transform: uppercase;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -105,11 +109,11 @@ def get_stream_results():
         return df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10).to_dict('records')
     except: return []
 
-# --- 5. PRIKAZ U KOLONAMA ---
-# Kreiramo dvije kolone: lijeva za grafiku (fiksna), desna prazna (za video)
-col1, col2 = st.columns([1, 3]) # Omjer 1:3 osigurava da 75% ekrana ostane prazno
+# --- 5. PRIKAZ U USKOJ KOLONI ---
+# Koristimo 1:4 omjer da bismo osigurali da grafika ne "curi" na sredinu ekrana
+left_col, right_col = st.columns([1, 4])
 
-with col1:
+with left_col:
     st.markdown('<div class="corner-overlay">', unsafe_allow_html=True)
     
     st.markdown('<div class="logo-block">Takmičarski Logo</div>', unsafe_allow_html=True)
@@ -132,9 +136,9 @@ with col1:
             </div>
         """, unsafe_allow_html=True)
 
-    st.markdown('<div class="sponsor-block">SPONZORI OVDJE</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sponsor-block">Sponzori ovdje</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col2:
-    # Ova kolona ostaje prazna i biće čista zelena (Chroma Key)
+with right_col:
+    # Ostatak ekrana ostaje prazan (zelen za vMix)
     st.empty()
