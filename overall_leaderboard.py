@@ -4,12 +4,12 @@ from firebase_admin import credentials, db
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# --- 1. KONFIGURACIJA ---
-# Isključujemo padding da bi grafika bila fiksirana uz ivicu
-st.set_page_config(page_title="vMix Overlay", layout="wide")
-st_autorefresh(interval=3000, key="vmix_refresh")
+# --- 1. KONFIGURACIJA (Fiksni Layout) ---
+st.set_page_config(page_title="Stream Overlay", layout="wide", initial_sidebar_state="collapsed")
+# Automatsko osvežavanje na 3 sekunde za LIVE rezultate
+st_autorefresh(interval=3000, key="broadcast_refresh")
 
-# --- 2. FIREBASE KONEKCIJA ---
+# --- 2. FIREBASE KONEKCIJA (Tvoji secrets) ---
 if not firebase_admin._apps:
     fb_secrets = st.secrets["firebase"]
     fixed_key = fb_secrets["private_key"].replace("\\n", "\n")
@@ -23,141 +23,167 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 3. SPECIJALNI BROADCAST CSS ---
+# --- 3. CSS ZA FLAT DIZAJN U ĆOŠKU ---
 st.markdown("""
     <style>
-    /* Čista Chroma zelena za pozadinu */
-    .stApp { background-color: #00FF00 !important; }
+    /* 1. Pozadina za Chroma Key u vMix-u */
+    .stApp {
+        background-color: #00FF00 !important;
+    }
     
-    /* Sakrivanje Streamlit UI-ja koji usporava vMix */
-    [data-testid="stHeader"], footer, [data-testid="stSidebar"], .stDeployButton { display: none !important; }
+    /* Sakrivanje Streamlit UI elemenata */
+    [data-testid="stHeader"], footer, .stDeployButton { display: none !important; }
     .block-container { padding: 0 !important; margin: 0 !important; }
 
-    .stream-overlay {
-        position: absolute;
-        top: 30px;
-        left: 30px;
-        width: 460px;
+    /* 2. Pozicioniranje i fiksna širina overlay-a u gornjem levom uglu */
+    .corner-overlay {
+        position: fixed;
+        top: 25px;
+        left: 25px;
+        width: 420px; /* FIKSNA ŠIRINA - ne skališe se */
         font-family: 'Arial Black', Gadget, sans-serif;
+        color: white;
+        z-index: 9999;
     }
 
-    .logo-box {
+    /* 3. LOGO blok (belo, oštri uglovi) */
+    .logo-block {
         background-color: white;
         color: black;
-        border-radius: 12px;
         padding: 15px;
         text-align: center;
         text-transform: uppercase;
         font-weight: 900;
-        font-size: 22px;
-        margin-bottom: 15px;
+        font-size: 20px;
+        margin-bottom: 20px;
+        letter-spacing: 1px;
     }
 
+    /* 4. ZAGLAVLJA tabele (crna kockica) */
     .header-grid {
         display: grid;
-        grid-template-columns: 60px 1fr 100px;
-        gap: 10px;
-        margin-bottom: 10px;
+        grid-template-columns: 60px 1fr 90px;
+        gap: 8px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        font-size: 13px;
+        font-weight: bold;
     }
     .header-cell {
-        background: black;
+        background-color: black;
         color: white;
+        padding: 10px;
         text-align: center;
-        padding: 8px;
-        border-radius: 8px;
-        font-size: 12px;
     }
 
+    /* 5. REDOVI (Flat dizajn, spojeni pravougaonici) */
     .row-grid {
         display: grid;
-        grid-template-columns: 60px 1fr 100px;
-        gap: 10px;
-        margin-bottom: 8px;
+        grid-template-columns: 60px 1fr 90px;
+        gap: 8px; /* Mali razmak između kockica u redu */
+        margin-bottom: 8px; /* Mali razmak između redova */
+        font-size: 18px;
+        font-weight: bold;
     }
-    .cell-pos {
-        background: white;
+
+    /* 5a. Pozicija (Belo) */
+    .pos-cell {
+        background-color: white;
         color: black;
-        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
         font-weight: 900;
     }
-    .cell-name {
-        background: #00FF00; /* Chroma */
-        color: white;
-        border: 3px solid white;
-        border-radius: 10px;
-        padding-left: 15px;
+
+    /* 5b. Ime (BELO SA BELIM OKVIROM - KAO U TEMPLATE) */
+    .name-cell {
+        background-color: white; /* Belo */
+        color: black;
+        border: 4px solid white; /* Beli okvir (da se stopi sa belom pozadinom) */
         display: flex;
         align-items: center;
-        font-size: 18px;
+        padding-left: 15px;
     }
-    .cell-reps {
-        background: #1a1e26;
+
+    /* 5c. Ponavljanja (TAMNO PLAVA/CRNA kockica) */
+    .reps-cell {
+        background-color: #1a1e26; /* Tamna boja rezultata */
         color: white;
-        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 22px;
     }
 
-    .sponsor-box {
-        background: white;
+    /* 6. SPONSOR blok (isto kao logo) */
+    .sponsor-block {
+        background-color: white;
         color: black;
-        border-radius: 12px;
-        padding: 20px;
+        padding: 25px;
         margin-top: 15px;
         text-align: center;
         font-weight: bold;
+        font-size: 16px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. DATA LOGIKA ---
-def get_data():
+# --- 4. DATA LOGIKA (Firebase) ---
+def get_stream_results():
     try:
         ref = db.reference('competitions')
         data = ref.get()
         if not data: return []
         
         results = []
+        # Trik za obradu Firebase listi i rečnika
         it = enumerate(data) if isinstance(data, list) else data.items()
         for _, athletes in it:
             if athletes:
                 a_it = enumerate(athletes) if isinstance(athletes, list) else athletes.items()
                 for _, d in a_it:
                     if d and isinstance(d, dict):
-                        results.append({"Ime": d.get('name', 'N/A'), "Reps": d.get('reps', 0)})
+                        results.append({"Ime": d.get('name', 'N/A'), "Poeni": d.get('reps', 0)})
         
         if not results: return []
-        df = pd.DataFrame(results).groupby("Ime")["Reps"].sum().reset_index()
-        return df.sort_values(by="Reps", ascending=False).reset_index(drop=True).head(10).to_dict('records')
+        df = pd.DataFrame(results).groupby("Ime")["Poeni"].sum().reset_index()
+        # Vraćamo samo top 10 radi prostora u ćošku
+        return df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10).to_dict('records')
     except: return []
 
-# --- 5. RENDEROVANJE ---
-st.markdown('<div class="stream-overlay">', unsafe_allow_html=True)
-st.markdown('<div class="logo-box">COMPETITION LOGO</div>', unsafe_allow_html=True)
+# --- 5. PRIKAZ ---
+st.markdown('<div class="corner-overlay">', unsafe_allow_html=True)
 
+# 1. Logo Blok
+st.markdown('<div class="logo-block">Takmičarski Logo</div>', unsafe_allow_html=True)
+
+# 2. Zaglavlja (Prevedeno)
 st.markdown("""
     <div class="header-grid">
-        <div class="header-cell">POS</div>
-        <div class="header-cell">NAME</div>
-        <div class="header-cell">REPS</div>
+        <div class="header-cell">Poz.</div>
+        <div class="header-cell">Takmičar</div>
+        <div class="header-cell">Pon.</div>
     </div>
 """, unsafe_allow_html=True)
 
-leaderboard = get_data()
-for i, row in enumerate(leaderboard):
-    st.markdown(f"""
-        <div class="row-grid">
-            <div class="cell-pos">{i+1}</div>
-            <div class="cell-name">{row['Ime']}</div>
-            <div class="cell-reps">{row['Reps']}</div>
-        </div>
-    """, unsafe_allow_html=True)
+# 3. Dinamički redovi iz Firebase-a
+leaderboard = get_stream_results()
 
-st.markdown('<div class="sponsor-box">Sponsors Space</div>', unsafe_allow_html=True)
+if leaderboard:
+    for i, row in enumerate(leaderboard):
+        html_row = f"""
+            <div class="row-grid">
+                <div class="pos-cell">{i+1}</div>
+                <div class="name-cell">{row['Ime']}</div>
+                <div class="reps-cell">{row['Poeni']}</div>
+            </div>
+        """
+        st.markdown(html_row, unsafe_allow_html=True)
+else:
+    st.markdown("<h4 style='text-align:center; color:white;'>Čekanje...</h4>", unsafe_allow_html=True)
+
+# 4. Sponsor Blok
+st.markdown('<div class="sponsor-block">Sponzori ovdje<br>Sponzori ovdje</div>', unsafe_allow_html=True)
+
 st.markdown('</div>', unsafe_allow_html=True)
