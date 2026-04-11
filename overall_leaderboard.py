@@ -33,67 +33,45 @@ if not firebase_admin._apps:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': st.secrets["database"]["url"]})
 
-# --- 4. CSS ZA TOTALNO SKRIVANJE IKONICA ---
+# --- 4. CSS (Očišćen od grešaka) ---
 st.markdown(f"""
     <style>
-    /* Zelena pozadina za vMix */
-    .stApp {{ 
-        background-color: #00FF00 !important; 
+    .stApp {{ background-color: #00FF00 !important; }}
+    
+    /* Sakrivanje apsolutno svega od Streamlit-a */
+    header, footer, .stDeployButton, [data-testid="stHeader"], 
+    [data-testid="stToolbar"], [data-testid="stStatusWidget"], 
+    [data-testid="stDecoration"], #MainMenu {{
+        visibility: hidden !important;
+        display: none !important;
     }}
     
-    /* 1. SAKRIVANJE SVIH SISTEMSKIH ELEMENATA (Header, Footer, Toolbar) */
-    header {{visibility: hidden !important;}}
-    footer {{visibility: hidden !important;}}
-    #MainMenu {{visibility: hidden !important;}}
-    [data-testid="stHeader"] {{display: none !important;}}
-    .stDeployButton {{display: none !important;}}
-    
-    /* 2. SAKRIVANJE TOOLBAR-A I STATUSNIH IKONICA U DONJEM DESNOM UGLU */
-    [data-testid="stToolbar"] {{display: none !important;}}
-    [data-testid="stStatusWidget"] {{display: none !important;}}
-    
-    /* Dodatni sloj zaštite za ikone u donjem desnom uglu */
-    div[data-testid="stDecoration"] {{display: none !important;}}
-    button[title="View source"] {{display: none !important;}}
-    
-    /* Postavljanje Safe Area */
     .block-container {{ 
         padding-top: {GORNJA_MARGINA} !important;    
         padding-left: {LEVA_MARGINA} !important; 
         margin: 0 !important; 
     }}
 
-    /* Glavni kontejner tabele */
     .corner-overlay {{
         width: {TABELA_SIRINA}; 
-        font-family: 'Arial Black', Gadget, sans-serif;
+        font-family: 'Arial Black', sans-serif;
     }}
 
     .logo-block {{
-        background-color: white;
-        color: black;
-        padding: 15px;
-        text-align: center;
-        text-transform: uppercase;
-        font-weight: 900;
-        font-size: 20px;
-        margin-bottom: 5px;
+        background-color: white; color: black; padding: 15px;
+        text-align: center; text-transform: uppercase;
+        font-weight: 900; font-size: 20px; margin-bottom: 5px;
     }}
 
     .header-grid, .row-grid {{
         display: grid;
         grid-template-columns: {SIRINA_POZICIJA} 1fr {SIRINA_POENI};
-        gap: 2px;
-        margin-bottom: 2px;
+        gap: 2px; margin-bottom: 2px;
     }}
 
     .header-cell {{ 
-        background-color: black; 
-        color: white; 
-        padding: 10px; 
-        text-align: center; 
-        font-size: 11px; 
-        text-transform: uppercase;
+        background-color: black; color: white; padding: 10px; 
+        text-align: center; font-size: 11px; text-transform: uppercase;
     }}
 
     .pos-cell {{ background: white; color: black; font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 18px; }}
@@ -101,14 +79,9 @@ st.markdown(f"""
     .reps-cell {{ background: #1a1e26; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }}
 
     .sponsor-block {{
-        background-color: white;
-        color: black;
-        padding: 15px;
-        margin-top: 10px;
-        text-align: center;
-        font-weight: bold;
-        font-size: 14px;
-        text-transform: uppercase;
+        background-color: white; color: black; padding: 15px;
+        margin-top: 10px; text-align: center; font-weight: bold;
+        font-size: 14px; text-transform: uppercase;
     }}
     </style>
 """, unsafe_allow_html=True)
@@ -120,17 +93,22 @@ def get_stream_results():
         data = ref.get()
         if not data: return []
         results = []
+        
+        # Iteracija kroz takmičenja i takmičare
         it = enumerate(data) if isinstance(data, list) else data.items()
         for _, athletes in it:
             if athletes:
                 a_it = enumerate(athletes) if isinstance(athletes, list) else athletes.items()
                 for _, d in a_it:
                     if d and isinstance(d, dict):
-                        results.append({{"Ime": d.get('name', 'N/A'), "Poeni": d.get('reps', 0)}})
+                        results.append({"Ime": d.get('name', 'N/A'), "Poeni": int(d.get('reps', 0))})
+        
         if not results: return []
+        # Sumiranje poena po imenu takmičara
         df = pd.DataFrame(results).groupby("Ime")["Poeni"].sum().reset_index()
         return df.sort_values(by="Poeni", ascending=False).reset_index(drop=True).head(10).to_dict('records')
-    except: return []
+    except:
+        return []
 
 # --- 6. RENDER ---
 left_col, _ = st.columns([1, 4])
@@ -150,15 +128,21 @@ with left_col:
     leaderboard = get_stream_results()
     if leaderboard:
         for i, row in enumerate(leaderboard):
-            st.markdown(f"""
+            # Formiranje HTML-a bez f-stringa unutar markdowna da se izbjegnu {{ }} greške
+            pos = i + 1
+            name = row['Ime']
+            score = row['Poeni']
+            
+            row_html = f"""
                 <div class="row-grid">
-                    <div class="pos-cell">{{i+1}}</div>
-                    <div class="name-cell">{{row['Ime']}}</div>
-                    <div class="reps-cell">{{row['Poeni']}}</div>
+                    <div class="pos-cell">{pos}</div>
+                    <div class="name-cell">{name}</div>
+                    <div class="reps-cell">{score}</div>
                 </div>
-            """, unsafe_allow_html=True)
+            """
+            st.markdown(row_html, unsafe_allow_html=True)
     else:
-        st.markdown("<div style='color:white; text-align:center;'>Čekanje...</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:white; text-align:center;'>Čekanje na podatke...</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="sponsor-block">SPONZORI OVDJE</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
