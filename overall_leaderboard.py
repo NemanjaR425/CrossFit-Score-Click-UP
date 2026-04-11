@@ -109,7 +109,7 @@ st.markdown("""
 
     /* 6b. Ćelija za Ime (ZELENA SA BELIM OKVIROM - KAO U TEMPLATE) */
     .name-cell {
-        background-color: #00FF00; /* Chroma boja */
+        background-color: #003049; /* Chroma boja */
         color: white;
         border-radius: 12px;
         border: 4px solid white; /* Beli okvir */
